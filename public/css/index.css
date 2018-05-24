@@ -1,0 +1,10 @@
+@import './bootstrap.min.css';
+@import url('https://fonts.googleapis.com/css?family=Roboto&subset=cyrillic');
+
+body {
+  font-family: 'Roboto', sans-serif;
+}
+
+h1 {
+  text-align: center;
+}
