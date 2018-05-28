@@ -71,6 +71,77 @@
 /************************************************************************/
 /******/ ({
 
+/***/ "./client/FirestoreService.js":
+/*!************************************!*\
+  !*** ./client/FirestoreService.js ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var FirestoreService = function () {
+  function FirestoreService() {
+    _classCallCheck(this, FirestoreService);
+  }
+
+  _createClass(FirestoreService, null, [{
+    key: 'getBlogs',
+    value: function getBlogs(db) {
+      return db.collection('blogs').orderBy('timeStamp', 'desc').get().then(function (array) {
+        return array.docs.map(function (el) {
+          return el.data();
+        });
+      });
+    }
+  }, {
+    key: 'getUsers',
+    value: function getUsers(db) {
+      return db.collection('users').get().then(function (array) {
+        return array.docs.map(function (el) {
+          return el.data();
+        });
+      });
+    }
+  }, {
+    key: 'postMessage',
+    value: function postMessage(db, message, email) {
+      return db.collection('blogs').add({
+        timeStamp: new Date(),
+        body: message,
+        author: email
+      });
+    }
+  }, {
+    key: 'addUser',
+    value: function addUser(db, user) {
+      return db.collection('users').add(user);
+    }
+  }, {
+    key: 'findUserByEmail',
+    value: function findUserByEmail(db, email) {
+      return db.collection('users').where('email', '==', email).get().then(function (el) {
+        return el.docs[0] ? el.docs[0].data() : null;
+      });
+    }
+  }]);
+
+  return FirestoreService;
+}();
+
+exports.default = FirestoreService;
+
+/***/ }),
+
 /***/ "./client/components/App.jsx":
 /*!***********************************!*\
   !*** ./client/components/App.jsx ***!
@@ -85,11 +156,25 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
+
+var _Login = __webpack_require__(/*! ./Login */ "./client/components/Login.jsx");
+
+var _Login2 = _interopRequireDefault(_Login);
+
+var _Blogs = __webpack_require__(/*! ./Blogs */ "./client/components/Blogs.jsx");
+
+var _Blogs2 = _interopRequireDefault(_Blogs);
+
+var _FirestoreService = __webpack_require__(/*! ../FirestoreService */ "./client/FirestoreService.js");
+
+var _FirestoreService2 = _interopRequireDefault(_FirestoreService);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -98,6 +183,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+/* global localStorage firebase */
+
 
 var App = function (_Component) {
   _inherits(App, _Component);
@@ -107,31 +194,48 @@ var App = function (_Component) {
 
     var _this = _possibleConstructorReturn(this, (App.__proto__ || Object.getPrototypeOf(App)).call(this));
 
-    _this.authorized = false;
+    var db = firebase.firestore();
+    db.settings({ timestampsInSnapshots: true });
+    var user = localStorage.getItem('user');
+    _this.state = {
+      user: user ? JSON.parse(user) : null,
+      db: db
+    };
     return _this;
   }
 
   _createClass(App, [{
-    key: "render",
+    key: 'auth',
+    value: function auth(user) {
+      var _this2 = this;
+
+      _FirestoreService2.default.findUserByEmail(this.state.db, user.email).then(function (dbUser) {
+        _this2.setState({ user: user });
+        localStorage.setItem('user', JSON.stringify(user));
+        if (!dbUser) {
+          _FirestoreService2.default.addUser(_this2.state.db, _extends({}, user));
+        }
+      });
+    }
+  }, {
+    key: 'logout',
+    value: function logout() {
+      localStorage.clear();
+      this.setState({ user: null });
+    }
+  }, {
+    key: 'render',
     value: function render() {
+      var _this3 = this;
+
       return _react2.default.createElement(
-        "div",
-        null,
-        _react2.default.createElement(
-          "h1",
-          null,
-          _react2.default.createElement(
-            "span",
-            { role: "img", "aria-label": "wave" },
-            "\uD83C\uDF0A"
-          ),
-          "Blogs",
-          _react2.default.createElement(
-            "span",
-            { role: "img", "aria-label": "wave" },
-            "\uD83C\uDF0A"
-          )
-        )
+        'div',
+        { className: 'container' },
+        this.state.user ? _react2.default.createElement(_Blogs2.default, { db: this.state.db, onLogout: function onLogout() {
+            return _this3.logout();
+          }, user: this.state.user }) : _react2.default.createElement(_Login2.default, { onLogin: function onLogin(u) {
+            return _this3.auth(u);
+          } })
       );
     }
   }]);
@@ -140,6 +244,279 @@ var App = function (_Component) {
 }(_react.Component);
 
 exports.default = App;
+
+/***/ }),
+
+/***/ "./client/components/Blogs.jsx":
+/*!*************************************!*\
+  !*** ./client/components/Blogs.jsx ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+var _react2 = _interopRequireDefault(_react);
+
+var _FirestoreService = __webpack_require__(/*! ../FirestoreService */ "./client/FirestoreService.js");
+
+var _FirestoreService2 = _interopRequireDefault(_FirestoreService);
+
+var _Post = __webpack_require__(/*! ./Post */ "./client/components/Post.jsx");
+
+var _Post2 = _interopRequireDefault(_Post);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+var Blogs = function (_Component) {
+  _inherits(Blogs, _Component);
+
+  function Blogs(props) {
+    _classCallCheck(this, Blogs);
+
+    var _this = _possibleConstructorReturn(this, (Blogs.__proto__ || Object.getPrototypeOf(Blogs)).call(this, props));
+
+    _this.state = {
+      blogs: null,
+      users: null,
+      message: ''
+    };
+    _this.getAll();
+    return _this;
+  }
+
+  _createClass(Blogs, [{
+    key: 'getAll',
+    value: function getAll() {
+      var _this2 = this;
+
+      this.setState({ blogs: null });
+      Promise.all([_FirestoreService2.default.getBlogs(this.props.db), _FirestoreService2.default.getUsers(this.props.db)]).then(function (_ref) {
+        var _ref2 = _slicedToArray(_ref, 2),
+            blogs = _ref2[0],
+            users = _ref2[1];
+
+        _this2.setState({ blogs: blogs, users: users });
+      });
+    }
+  }, {
+    key: 'findAuthor',
+    value: function findAuthor(email) {
+      return this.state.users.find(function (user) {
+        return user.email === email;
+      });
+    }
+  }, {
+    key: 'handleEnter',
+    value: function handleEnter(e) {
+      if (e.key === 'Enter') {
+        this.post();
+      }
+    }
+  }, {
+    key: 'post',
+    value: function post() {
+      if (this.state.message) {
+        _FirestoreService2.default.postMessage(this.props.db, this.state.message, this.props.user.email);
+        this.setState({ message: '' });
+        this.getAll();
+      }
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var _this3 = this;
+
+      var blogs = this.state.blogs;
+
+      return _react2.default.createElement(
+        'div',
+        { className: 'blogs' },
+        _react2.default.createElement(
+          'button',
+          { className: 'btn btn-outline-secondary btn-sm logout', onClick: function onClick() {
+              return _this3.props.onLogout();
+            } },
+          'Logout'
+        ),
+        _react2.default.createElement(
+          'h1',
+          null,
+          _react2.default.createElement(
+            'span',
+            { role: 'img', 'aria-label': 'wave' },
+            '\uD83C\uDF0A'
+          ),
+          'Blogs',
+          _react2.default.createElement(
+            'span',
+            { role: 'img', 'aria-label': 'wave' },
+            '\uD83C\uDF0A'
+          )
+        ),
+        _react2.default.createElement(
+          'div',
+          { className: 'post-input input-group' },
+          _react2.default.createElement(
+            'div',
+            { className: 'input-group-prepend' },
+            _react2.default.createElement(
+              'span',
+              { className: 'input-group-text', id: 'inputGroup-sizing-sm' },
+              'What\'s new?'
+            )
+          ),
+          _react2.default.createElement('input', { value: this.state.message, onChange: function onChange(e) {
+              return _this3.setState({ message: e.target.value });
+            }, onKeyPress: function onKeyPress(e) {
+              return _this3.handleEnter(e);
+            }, className: 'form-control', type: 'text' }),
+          _react2.default.createElement(
+            'div',
+            { className: 'input-group-append' },
+            _react2.default.createElement(
+              'button',
+              { onClick: function onClick() {
+                  return _this3.post();
+                }, className: 'btn btn-outline-secondary', type: 'button' },
+              'Post'
+            )
+          )
+        ),
+        blogs === null ? _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' }) : blogs.map(function (blog, i) {
+          return _react2.default.createElement(_Post2.default, { author: _this3.findAuthor(blog.author), post: blog, key: i });
+        })
+      );
+    }
+  }]);
+
+  return Blogs;
+}(_react.Component);
+
+exports.default = Blogs;
+
+/***/ }),
+
+/***/ "./client/components/Login.jsx":
+/*!*************************************!*\
+  !*** ./client/components/Login.jsx ***!
+  \*************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var login = function login(cb) {
+  var provider = new firebase.auth.GoogleAuthProvider();
+  firebase.auth().signInWithPopup(provider).then(function (res) {
+    var user = res.user.providerData[0];
+    if (user) {
+      cb(user);
+    }
+  }).catch(console.error);
+}; /* global firebase */
+
+
+var Login = function Login(_ref) {
+  var onLogin = _ref.onLogin;
+  return _react2.default.createElement(
+    "div",
+    { className: "login-form" },
+    _react2.default.createElement(
+      "h2",
+      null,
+      "Login with Google"
+    ),
+    _react2.default.createElement("button", { className: "btn login-btn", onClick: function onClick() {
+        return login(onLogin);
+      } })
+  );
+};
+
+exports.default = Login;
+
+/***/ }),
+
+/***/ "./client/components/Post.jsx":
+/*!************************************!*\
+  !*** ./client/components/Post.jsx ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+var _react2 = _interopRequireDefault(_react);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Post = function Post(props) {
+  return _react2.default.createElement(
+    "div",
+    { className: "post row" },
+    _react2.default.createElement(
+      "div",
+      { className: "author col-md-3" },
+      _react2.default.createElement("div", { className: "photo", style: { backgroundImage: "url('" + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + "')" } }),
+      _react2.default.createElement(
+        "span",
+        null,
+        props.author.displayName
+      )
+    ),
+    _react2.default.createElement(
+      "div",
+      { className: "text col-md-9" },
+      _react2.default.createElement(
+        "p",
+        { className: "body" },
+        props.post.body
+      ),
+      _react2.default.createElement(
+        "p",
+        { className: "date" },
+        props.post.timeStamp.toDate().toLocaleString()
+      )
+    )
+  );
+};
+
+exports.default = Post;
 
 /***/ }),
 
@@ -167,7 +544,9 @@ var _App2 = _interopRequireDefault(_App);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-_reactDom2.default.render(_react2.default.createElement(_App2.default, null), document.getElementById('root')); /* global document */
+document.addEventListener('DOMContentLoaded', function () {
+  _reactDom2.default.render(_react2.default.createElement(_App2.default, null), document.getElementById('root'));
+}); /* global document */
 
 /***/ }),
 

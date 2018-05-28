@@ -1,18 +1,42 @@
+
+/* global localStorage firebase */
 import React, { Component } from 'react';
+import Login from './Login';
+import Blogs from './Blogs';
+import FirestoreService from '../FirestoreService';
 
 class App extends Component {
   constructor() {
     super();
-    this.authorized = false;
+    const db = firebase.firestore();
+    db.settings({ timestampsInSnapshots: true });
+    const user = localStorage.getItem('user');
+    this.state = {
+      user: user ? JSON.parse(user) : null,
+      db
+    };
   }
+
+  auth(user) {
+    FirestoreService.findUserByEmail(this.state.db, user.email)
+      .then((dbUser) => {
+        this.setState({ user });
+        localStorage.setItem('user', JSON.stringify(user));
+        if (!dbUser) {
+          FirestoreService.addUser(this.state.db, { ...user });
+        }
+      });
+  }
+
+  logout() {
+    localStorage.clear();
+    this.setState({ user: null });
+  }
+
   render() {
     return (
-      <div>
-        <h1>
-          <span role="img" aria-label="wave">🌊</span>
-          Blogs
-          <span role="img" aria-label="wave">🌊</span>
-        </h1>
+      <div className="container">
+        {this.state.user ? <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} /> : <Login onLogin={u => this.auth(u)} />}
       </div>
     );
   }
