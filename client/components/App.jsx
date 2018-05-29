@@ -1,8 +1,10 @@
 
 /* global localStorage firebase */
 import React, { Component } from 'react';
+import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
 import Login from './Login';
 import Blogs from './Blogs';
+import Profile from './Profile';
 import FirestoreService from '../FirestoreService';
 
 class App extends Component {
@@ -23,8 +25,9 @@ class App extends Component {
         this.setState({ user });
         localStorage.setItem('user', JSON.stringify(user));
         if (!dbUser) {
-          FirestoreService.addUser(this.state.db, { ...user });
+          return FirestoreService.addUser(this.state.db, { ...user });
         }
+        return null;
       });
   }
 
@@ -35,9 +38,14 @@ class App extends Component {
 
   render() {
     return (
-      <div className="container">
-        {this.state.user ? <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} /> : <Login onLogin={u => this.auth(u)} />}
-      </div>
+      <Router>
+        <div className="container">
+          {this.state.user === null ? <Redirect to={{ pathname: '/login' }} /> : null}
+          <Route exact path="/" render={() => <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} />} />
+          <Route path="/login" render={() => <Login user={this.state.user} onLogin={u => this.auth(u)} />} />
+          <Route exact path="/user/:email" render={data => <Profile email={data.match.params.email} db={this.state.db} />} />
+        </div>
+      </Router>
     );
   }
 }

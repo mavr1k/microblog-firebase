@@ -1,5 +1,6 @@
 /* global firebase */
 import React from 'react';
+import { Redirect } from 'react-router-dom';
 
 const login = (cb) => {
   const provider = new firebase.auth.GoogleAuthProvider();
@@ -13,8 +14,9 @@ const login = (cb) => {
     .catch(console.error);
 };
 
-const Login = ({ onLogin }) => (
+const Login = ({ onLogin, user }) => (
   <div className="login-form">
+    {user === null ? null : <Redirect to="/" />}
     <h2>Login with Google</h2>
     <button className="btn login-btn" onClick={() => login(onLogin)} />
   </div>

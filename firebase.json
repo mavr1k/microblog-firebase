@@ -12,6 +12,17 @@
     ]
   },
   "hosting": {
+    "headers": [{
+      "source": "**/*.@(css|js)",
+      "headers": [{
+        "key": "Cache-Control",
+        "value": "max-age=300"
+      }]
+    }],
+    "rewrites": [{
+      "source": "**",
+      "destination": "/index.html"
+    }],
     "public": "public",
     "ignore": [
       "firebase.json",

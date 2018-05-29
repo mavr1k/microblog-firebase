@@ -2,6 +2,13 @@ class FirestoreService {
   static getBlogs(db) {
     return db.collection('blogs').orderBy('timeStamp', 'desc').get().then(array => array.docs.map(el => el.data()));
   }
+  static getBlogsByEmail(email, db) {
+    return db.collection('blogs')
+      .where('author', '==', email)
+      .orderBy('timeStamp', 'desc')
+      .get()
+      .then(array => array.docs.map(el => el.data()));
+  }
   static getUsers(db) {
     return db.collection('users').get().then(array => array.docs.map(el => el.data()));
   }

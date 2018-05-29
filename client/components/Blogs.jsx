@@ -10,6 +10,9 @@ class Blogs extends Component {
       users: null,
       message: ''
     };
+  }
+
+  componentDidMount() {
     this.getAll();
   }
 
