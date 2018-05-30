@@ -16,15 +16,19 @@ class Blogs extends Component {
   }
 
   componentDidMount() {
-    this.getAll();
-    this.unsubscribe = FirestoreService
-      .onBlogsChange(this.props.db)
-      .onSnapshot(snap =>
-        this.setState({ blogs: snap.docs.map(el => ({ ...el.data(), id: el.id })) }));
+    if (this.props.user !== null) {
+      this.getAll();
+      this.unsubscribe = FirestoreService
+        .onBlogsChange(this.props.db)
+        .onSnapshot(snap =>
+          this.setState({ blogs: snap.docs.map(el => ({ ...el.data(), id: el.id })) }));
+    }
   }
 
   componentWillUnmount() {
-    this.unsubscribe();
+    if (this.unsubscribe) {
+      this.unsubscribe();
+    }
   }
 
   getAll() {

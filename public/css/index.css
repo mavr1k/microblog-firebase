@@ -76,7 +76,8 @@ a:hover {
 
 .post .author,
 .post .text,
-.post .author a {
+.post .author a,
+.post .author span {
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -152,4 +153,11 @@ a:hover {
   top: 0;
   position: absolute;
   font-size: 20px;
+}
+
+.post-id {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 10px;
 }

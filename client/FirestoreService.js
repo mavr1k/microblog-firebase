@@ -28,7 +28,7 @@ class FirestoreService {
       .where('email', '==', email)
       .get()
       .then(el => (el.docs[0] ? el.docs[0].data() : null));
-  }  
+  }
   static deleteMessage(db, id) {
     return db.collection('blogs').doc(id).delete();
   }

@@ -12,10 +12,17 @@ const deletePost = (db, id) => {
 const Post = props => (
   <div className="post row">
     <div className="author col-md-3">
-      <Link href="/" to={`/user/${encodeURIComponent(props.author.email)}`}>
-        <div className="photo" style={{ backgroundImage: `url('${props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png'}')` }} />
-        {props.author.displayName}
-      </Link>
+      {window.location.pathname.includes('user') ? (
+        <span>
+          <div className="photo" style={{ backgroundImage: `url('${props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png'}')` }} />
+          {props.author.displayName}
+        </span>
+      ) : (
+        <Link href="/" to={`/user/${encodeURIComponent(props.author.email)}`}>
+          <div className="photo" style={{ backgroundImage: `url('${props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png'}')` }} />
+          {props.author.displayName}
+        </Link>
+        )}
     </div>
     <div className="text col-md-9">
       <p className="body">{props.post.body}</p>
@@ -24,6 +31,7 @@ const Post = props => (
         <button onClick={() => deletePost(props.db, props.post.id)} className="btn btn-link delete-post">
           <i className="fas fa-eraser" />
         </button> : null}
+      <button className="btn btn-link post-id">{props.post.id}</button>
     </div>
   </div>
 );

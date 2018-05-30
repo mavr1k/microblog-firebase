@@ -45,7 +45,12 @@ class Profile extends Component {
               <p className="posts-count">Posts count: <b>{blogs.length}</b></p>
             </div>
             <h2>{emoji.character}Posts{emoji.character}</h2>
-            <Feed db={this.props.db} currentUser={this.props.currentUser} users={[this.state.user]} blogs={this.state.blogs} />
+            <Feed
+              db={this.props.db}
+              currentUser={this.props.currentUser}
+              users={[this.state.user]}
+              blogs={this.state.blogs}
+            />
           </div>
         }
       </div>

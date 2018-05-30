@@ -281,7 +281,7 @@ var App = function (_Component) {
                 } });
             } }),
           _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/user/:email', render: function render(data) {
-              return _react2.default.createElement(_Profile2.default, { currentUser: _this3.state.user, goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
+              return _react2.default.createElement(_Profile2.default, { data: data, currentUser: _this3.state.user, goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
             } })
         )
       );
@@ -361,17 +361,21 @@ var Blogs = function (_Component) {
     value: function componentDidMount() {
       var _this2 = this;
 
-      this.getAll();
-      this.unsubscribe = _FirestoreService2.default.onBlogsChange(this.props.db).onSnapshot(function (snap) {
-        return _this2.setState({ blogs: snap.docs.map(function (el) {
-            return _extends({}, el.data(), { id: el.id });
-          }) });
-      });
+      if (this.props.user !== null) {
+        this.getAll();
+        this.unsubscribe = _FirestoreService2.default.onBlogsChange(this.props.db).onSnapshot(function (snap) {
+          return _this2.setState({ blogs: snap.docs.map(function (el) {
+              return _extends({}, el.data(), { id: el.id });
+            }) });
+        });
+      }
     }
   }, {
     key: 'componentWillUnmount',
     value: function componentWillUnmount() {
-      this.unsubscribe();
+      if (this.unsubscribe) {
+        this.unsubscribe();
+      }
     }
   }, {
     key: 'getAll',
@@ -634,7 +638,12 @@ var Post = function Post(props) {
     _react2.default.createElement(
       'div',
       { className: 'author col-md-3' },
-      _react2.default.createElement(
+      window.location.pathname.includes('user') ? _react2.default.createElement(
+        'span',
+        null,
+        _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
+        props.author.displayName
+      ) : _react2.default.createElement(
         _reactRouterDom.Link,
         { href: '/', to: '/user/' + encodeURIComponent(props.author.email) },
         _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
@@ -660,7 +669,12 @@ var Post = function Post(props) {
             return deletePost(props.db, props.post.id);
           }, className: 'btn btn-link delete-post' },
         _react2.default.createElement('i', { className: 'fas fa-eraser' })
-      ) : null
+      ) : null,
+      _react2.default.createElement(
+        'button',
+        { className: 'btn btn-link post-id' },
+        props.post.id
+      )
     )
   );
 };
@@ -806,7 +820,12 @@ var Profile = function (_Component) {
             'Posts',
             emoji.character
           ),
-          _react2.default.createElement(_Feed2.default, { db: this.props.db, currentUser: this.props.currentUser, users: [this.state.user], blogs: this.state.blogs })
+          _react2.default.createElement(_Feed2.default, {
+            db: this.props.db,
+            currentUser: this.props.currentUser,
+            users: [this.state.user],
+            blogs: this.state.blogs
+          })
         )
       );
     }
