@@ -104,13 +104,14 @@ var FirestoreService = function () {
       });
     }
   }, {
-    key: 'getBlogsByEmail',
-    value: function getBlogsByEmail(email, db) {
-      return db.collection('blogs').where('author', '==', email).orderBy('timeStamp', 'desc').get().then(function (array) {
-        return array.docs.map(function (el) {
-          return el.data();
-        });
-      });
+    key: 'onBlogsChange',
+    value: function onBlogsChange(db) {
+      return db.collection('blogs').orderBy('timeStamp', 'desc');
+    }
+  }, {
+    key: 'onBlogsChangeByEmail',
+    value: function onBlogsChangeByEmail(db, email) {
+      return db.collection('blogs').where('author', '==', email).orderBy('timeStamp', 'desc');
     }
   }, {
     key: 'getUsers',
@@ -143,9 +144,9 @@ var FirestoreService = function () {
       });
     }
   }, {
-    key: 'onBlogsChange',
-    value: function onBlogsChange(db) {
-      return db.collection('blogs').orderBy('timeStamp', 'desc');
+    key: 'deleteMessage',
+    value: function deleteMessage(db, id) {
+      return db.collection('blogs').doc(id).delete();
     }
   }]);
 
@@ -217,10 +218,22 @@ var App = function (_Component) {
     var db = firebase.firestore();
     db.settings({ timestampsInSnapshots: true });
     var user = localStorage.getItem('user');
+    try {
+      user = user ? JSON.parse(user) : null;
+    } catch (e) {
+      user = null;
+    }
     _this.state = {
-      user: user ? JSON.parse(user) : null,
+      user: user,
       db: db
     };
+    if (user) {
+      _FirestoreService2.default.findUserByEmail(_this.state.db, user.email).then(function (dbUser) {
+        if (dbUser) {
+          _this.setState({ user: dbUser });
+        }
+      });
+    }
     return _this;
   }
 
@@ -230,11 +243,13 @@ var App = function (_Component) {
       var _this2 = this;
 
       _FirestoreService2.default.findUserByEmail(this.state.db, user.email).then(function (dbUser) {
-        _this2.setState({ user: user });
         localStorage.setItem('user', JSON.stringify(user));
         if (!dbUser) {
-          return _FirestoreService2.default.addUser(_this2.state.db, _extends({}, user));
+          return _FirestoreService2.default.addUser(_this2.state.db, _extends({}, user)).then(function (u) {
+            return _this2.setState({ user: u });
+          });
         }
+        _this2.setState({ user: dbUser });
         return null;
       });
     }
@@ -255,7 +270,6 @@ var App = function (_Component) {
         _react2.default.createElement(
           'div',
           { className: 'container' },
-          this.state.user === null ? _react2.default.createElement(_reactRouterDom.Redirect, { to: { pathname: '/login' } }) : null,
           _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/', render: function render() {
               return _react2.default.createElement(_Blogs2.default, { db: _this3.state.db, onLogout: function onLogout() {
                   return _this3.logout();
@@ -267,7 +281,7 @@ var App = function (_Component) {
                 } });
             } }),
           _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/user/:email', render: function render(data) {
-              return _react2.default.createElement(_Profile2.default, { goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
+              return _react2.default.createElement(_Profile2.default, { currentUser: _this3.state.user, goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
             } })
         )
       );
@@ -295,6 +309,8 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
@@ -304,6 +320,8 @@ var _react2 = _interopRequireDefault(_react);
 var _randomEmoji = __webpack_require__(/*! random-emoji */ "./node_modules/random-emoji/index.js");
 
 var _randomEmoji2 = _interopRequireDefault(_randomEmoji);
+
+var _reactRouterDom = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router-dom/es/index.js");
 
 var _Feed = __webpack_require__(/*! ./Feed */ "./client/components/Feed.jsx");
 
@@ -346,7 +364,7 @@ var Blogs = function (_Component) {
       this.getAll();
       this.unsubscribe = _FirestoreService2.default.onBlogsChange(this.props.db).onSnapshot(function (snap) {
         return _this2.setState({ blogs: snap.docs.map(function (el) {
-            return el.data();
+            return _extends({}, el.data(), { id: el.id });
           }) });
       });
     }
@@ -381,10 +399,15 @@ var Blogs = function (_Component) {
   }, {
     key: 'post',
     value: function post() {
-      if (this.state.message) {
+      if (this.isMessageValid()) {
         _FirestoreService2.default.postMessage(this.props.db, this.state.message, this.props.user.email);
         this.setState({ message: '' });
       }
+    }
+  }, {
+    key: 'isMessageValid',
+    value: function isMessageValid() {
+      return this.state.message.length > 0 && this.state.message.length < 200;
     }
   }, {
     key: 'render',
@@ -393,7 +416,7 @@ var Blogs = function (_Component) {
 
       var emoji = this.state.emoji;
 
-      return _react2.default.createElement(
+      return this.props.user === null ? _react2.default.createElement(_reactRouterDom.Redirect, { to: '/login' }) : _react2.default.createElement(
         'div',
         { className: 'blogs' },
         _react2.default.createElement(
@@ -412,7 +435,7 @@ var Blogs = function (_Component) {
         ),
         _react2.default.createElement(
           'div',
-          { className: 'post-input input-group' },
+          { className: 'post-input input-group error' },
           _react2.default.createElement(
             'div',
             { className: 'input-group-prepend' },
@@ -422,24 +445,29 @@ var Blogs = function (_Component) {
               'What\'s new?'
             )
           ),
-          _react2.default.createElement('input', { value: this.state.message, onChange: function onChange(e) {
+          _react2.default.createElement('input', { placeholder: 'Your text here...', value: this.state.message, onChange: function onChange(e) {
               return _this4.setState({ message: e.target.value });
             }, onKeyPress: function onKeyPress(e) {
               return _this4.handleEnter(e);
-            }, className: 'form-control', type: 'text' }),
+            }, className: 'form-control ' + (!this.isMessageValid() && this.state.message.length !== 0 ? 'is-invalid' : ''), type: 'text' }),
           _react2.default.createElement(
             'div',
             { className: 'input-group-append' },
             _react2.default.createElement(
               'button',
-              { onClick: function onClick() {
+              { disabled: !this.isMessageValid(), onClick: function onClick() {
                   return _this4.post();
                 }, className: 'btn btn-outline-secondary', type: 'button' },
               'Post'
             )
           )
         ),
-        _react2.default.createElement(_Feed2.default, { users: this.state.users, blogs: this.state.blogs })
+        _react2.default.createElement(_Feed2.default, {
+          currentUser: this.props.user,
+          db: this.props.db,
+          users: this.state.users,
+          blogs: this.state.blogs
+        })
       );
     }
   }]);
@@ -469,6 +497,8 @@ var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
 
+var _reactRouterDom = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router-dom/es/index.js");
+
 var _Post = __webpack_require__(/*! ./Post */ "./client/components/Post.jsx");
 
 var _Post2 = _interopRequireDefault(_Post);
@@ -477,15 +507,25 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 
 var Feed = function Feed(_ref) {
   var users = _ref.users,
-      blogs = _ref.blogs;
+      blogs = _ref.blogs,
+      db = _ref.db,
+      currentUser = _ref.currentUser;
 
-  if (blogs === null || users === null) {
+  if (currentUser === null) {
+    return _react2.default.createElement(_reactRouterDom.Redirect, { to: '/login' });
+  } else if (blogs === null || users === null) {
     return _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' });
   } else if (blogs.length > 0) {
     return blogs.map(function (blog, i) {
-      return _react2.default.createElement(_Post2.default, { author: users.find(function (user) {
+      return _react2.default.createElement(_Post2.default, {
+        currentUser: currentUser,
+        db: db,
+        author: users.find(function (user) {
           return user.email === blog.author;
-        }), post: blog, key: i });
+        }),
+        post: blog,
+        key: i
+      });
     });
   }
   return _react2.default.createElement(
@@ -574,7 +614,18 @@ var _react2 = _interopRequireDefault(_react);
 
 var _reactRouterDom = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router-dom/es/index.js");
 
+var _FirestoreService = __webpack_require__(/*! ../FirestoreService */ "./client/FirestoreService.js");
+
+var _FirestoreService2 = _interopRequireDefault(_FirestoreService);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var deletePost = function deletePost(db, id) {
+  if (window.confirm('Are you sure?')) {
+    _FirestoreService2.default.deleteMessage(db, id);
+  }
+}; /* global window */
+
 
 var Post = function Post(props) {
   return _react2.default.createElement(
@@ -602,7 +653,14 @@ var Post = function Post(props) {
         'p',
         { className: 'date' },
         props.post.timeStamp.toDate().toLocaleString()
-      )
+      ),
+      props.post.author === props.currentUser.email || props.currentUser.isAdmin ? _react2.default.createElement(
+        'button',
+        { onClick: function onClick() {
+            return deletePost(props.db, props.post.id);
+          }, className: 'btn btn-link delete-post' },
+        _react2.default.createElement('i', { className: 'fas fa-eraser' })
+      ) : null
     )
   );
 };
@@ -625,7 +683,7 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -675,13 +733,19 @@ var Profile = function (_Component) {
       var _this2 = this;
 
       var email = decodeURIComponent(this.props.email);
-      Promise.all([_FirestoreService2.default.getBlogsByEmail(email, this.props.db), _FirestoreService2.default.findUserByEmail(this.props.db, email)]).then(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 2),
-            blogs = _ref2[0],
-            user = _ref2[1];
-
-        return _this2.setState({ blogs: blogs, user: user });
+      _FirestoreService2.default.findUserByEmail(this.props.db, email).then(function (user) {
+        _this2.unsubscribe = _FirestoreService2.default.onBlogsChangeByEmail(_this2.props.db, email).onSnapshot(function (snap) {
+          var blogs = snap.docs.map(function (el) {
+            return _extends({}, el.data(), { id: el.id });
+          });
+          _this2.setState({ user: user, blogs: blogs });
+        });
       });
+    }
+  }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      this.unsubscribe();
     }
   }, {
     key: 'render',
@@ -742,7 +806,7 @@ var Profile = function (_Component) {
             'Posts',
             emoji.character
           ),
-          _react2.default.createElement(_Feed2.default, { users: [this.state.user], blogs: this.state.blogs })
+          _react2.default.createElement(_Feed2.default, { db: this.props.db, currentUser: this.props.currentUser, users: [this.state.user], blogs: this.state.blogs })
         )
       );
     }

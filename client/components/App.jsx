@@ -1,7 +1,7 @@
 
 /* global localStorage firebase */
 import React, { Component } from 'react';
-import { BrowserRouter as Router, Route, Redirect } from 'react-router-dom';
+import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Login from './Login';
 import Blogs from './Blogs';
 import Profile from './Profile';
@@ -11,22 +11,36 @@ class App extends Component {
   constructor() {
     super();
     const db = firebase.firestore();
-    db.settings({ timestampsInSnapshots: true });
-    const user = localStorage.getItem('user');
+    db.settings({ timestampsInSnapshots: true });    
+    let user = localStorage.getItem('user');
+    try {
+      user = user ? JSON.parse(user) : null;
+    } catch (e) {
+      user = null;
+    }
     this.state = {
-      user: user ? JSON.parse(user) : null,
+      user,
       db
     };
+    if (user) {
+      FirestoreService.findUserByEmail(this.state.db, user.email)
+        .then((dbUser) => {
+          if (dbUser) {
+            this.setState({ user: dbUser });
+          }
+        });
+    }
   }
 
   auth(user) {
     FirestoreService.findUserByEmail(this.state.db, user.email)
       .then((dbUser) => {
-        this.setState({ user });
         localStorage.setItem('user', JSON.stringify(user));
         if (!dbUser) {
-          return FirestoreService.addUser(this.state.db, { ...user });
+          return FirestoreService.addUser(this.state.db, { ...user })
+            .then(u => this.setState({ user: u }));
         }
+        this.setState({ user: dbUser });
         return null;
       });
   }
@@ -40,10 +54,9 @@ class App extends Component {
     return (
       <Router>
         <div className="container">
-          {this.state.user === null ? <Redirect to={{ pathname: '/login' }} /> : null}
           <Route exact path="/" render={() => <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} />} />
           <Route path="/login" render={() => <Login user={this.state.user} onLogin={u => this.auth(u)} />} />
-          <Route exact path="/user/:email" render={data => <Profile goBack={data.history.goBack} email={data.match.params.email} db={this.state.db} />} />
+          <Route exact path="/user/:email" render={data => <Profile currentUser={this.state.user} goBack={data.history.goBack} email={data.match.params.email} db={this.state.db} />} />
         </div>
       </Router>
     );

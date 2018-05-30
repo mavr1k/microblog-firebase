@@ -14,12 +14,20 @@ class Profile extends Component {
   }
   componentDidMount() {
     const email = decodeURIComponent(this.props.email);
-    Promise.all([
-      FirestoreService.getBlogsByEmail(email, this.props.db),
-      FirestoreService.findUserByEmail(this.props.db, email)
-    ])
-      .then(([blogs, user]) => this.setState({ blogs, user }));
+    FirestoreService.findUserByEmail(this.props.db, email)
+      .then((user) => {
+        this.unsubscribe = FirestoreService.onBlogsChangeByEmail(this.props.db, email)
+          .onSnapshot((snap) => {
+            const blogs = snap.docs.map(el => ({ ...el.data(), id: el.id }));
+            this.setState({ user, blogs });
+          });
+      });
   }
+
+  componentWillUnmount() {
+    this.unsubscribe();
+  }
+
   render() {
     const { blogs, user, emoji } = this.state;
     return (
@@ -37,7 +45,7 @@ class Profile extends Component {
               <p className="posts-count">Posts count: <b>{blogs.length}</b></p>
             </div>
             <h2>{emoji.character}Posts{emoji.character}</h2>
-            <Feed users={[this.state.user]} blogs={this.state.blogs} />
+            <Feed db={this.props.db} currentUser={this.props.currentUser} users={[this.state.user]} blogs={this.state.blogs} />
           </div>
         }
       </div>

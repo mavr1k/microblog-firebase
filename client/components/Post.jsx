@@ -1,5 +1,13 @@
+/* global window */
 import React from 'react';
 import { Link } from 'react-router-dom';
+import FirestoreService from '../FirestoreService';
+
+const deletePost = (db, id) => {
+  if (window.confirm('Are you sure?')) {
+    FirestoreService.deleteMessage(db, id);
+  }
+};
 
 const Post = props => (
   <div className="post row">
@@ -12,6 +20,10 @@ const Post = props => (
     <div className="text col-md-9">
       <p className="body">{props.post.body}</p>
       <p className="date">{props.post.timeStamp.toDate().toLocaleString()}</p>
+      {props.post.author === props.currentUser.email || props.currentUser.isAdmin ?
+        <button onClick={() => deletePost(props.db, props.post.id)} className="btn btn-link delete-post">
+          <i className="fas fa-eraser" />
+        </button> : null}
     </div>
   </div>
 );

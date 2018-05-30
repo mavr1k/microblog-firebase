@@ -84,8 +84,10 @@ a:hover {
 }
 
 .post .text {
+  padding-right: 50px;
   align-items: flex-start;
   justify-content: space-between;
+  word-break: break-all;
 }
 
 .post .body {
@@ -143,4 +145,11 @@ a:hover {
   font-size: 40px;
   position: absolute;
   top: 0;
+}
+
+.delete-post {
+  right: 0;
+  top: 0;
+  position: absolute;
+  font-size: 20px;
 }
