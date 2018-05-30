@@ -10,8 +10,7 @@ const login = (cb) => {
       if (user) {
         cb(user);
       }
-    })
-    .catch(console.error);
+    });
 };
 
 const Login = ({ onLogin, user }) => (

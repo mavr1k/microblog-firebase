@@ -1,12 +1,35 @@
+@import 'https://use.fontawesome.com/releases/v5.0.13/css/all.css';
 @import './bootstrap.min.css';
 @import url('https://fonts.googleapis.com/css?family=Roboto&subset=cyrillic');
+html {
+  height: 100%;
+}
+
 body {
   font-family: 'Roboto', sans-serif;
   color: #747474;
+  min-height: 100%;
 }
 
-h1 {
+#root {
+  padding-top: 50px;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   text-align: center;
+}
+
+a {
+  color: #6695c8;
+}
+
+a:hover {
+  text-decoration: none;
 }
 
 .login-form {
@@ -34,10 +57,6 @@ h1 {
   border: none;
 }
 
-.blogs {
-  margin-top: 50px;
-}
-
 .logout {
   float: right;
 }
@@ -56,7 +75,8 @@ h1 {
 }
 
 .post .author,
-.post .text {
+.post .text,
+.post .author a {
   padding: 0;
   display: flex;
   flex-direction: column;
@@ -68,7 +88,7 @@ h1 {
   justify-content: space-between;
 }
 
-.post .body{
+.post .body {
   font-size: 16px;
 }
 
@@ -76,14 +96,51 @@ h1 {
   font-size: 12px;
 }
 
-.post .author span {
-  font-size: 20px;
-}
-
-.post .author .photo {
+.photo {
   background-repeat: no-repeat;
   background-size: cover;
   width: 100px;
   height: 100px;
   border-radius: 50px;
+}
+
+.profile {
+  display: flex;
+  margin: 20px 0;
+}
+
+.profile .photo {
+  width: 300px;
+  height: 300px;
+  border-radius: 150px;
+}
+
+.profile .name {
+  margin-top: 50px;
+  margin-left: 50px;
+  font-size: 20px;
+}
+
+.profile .email {
+  margin-top: 58px;
+  margin-left: 10px;
+  font-size: 12px;
+}
+
+.profile .posts-count {
+  align-self: flex-end;
+  margin-left: auto;
+}
+
+.no-posts {
+  margin-top: 200px;
+  font-size: 100px;
+  opacity: 0.2;
+  user-select: none;
+}
+
+.go-back {
+  font-size: 40px;
+  position: absolute;
+  top: 0;
 }

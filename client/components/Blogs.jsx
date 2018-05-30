@@ -1,6 +1,7 @@
 import React, { Component } from 'react';
+import randomEmoji from 'random-emoji';
+import Feed from './Feed';
 import FirestoreService from '../FirestoreService';
-import Post from './Post';
 
 class Blogs extends Component {
   constructor(props) {
@@ -8,23 +9,24 @@ class Blogs extends Component {
     this.state = {
       blogs: null,
       users: null,
-      message: ''
+      message: '',
+      emoji: randomEmoji.random({ count: 1 })[0]
     };
   }
 
   componentDidMount() {
     this.getAll();
+    this.unsubscribe = FirestoreService
+      .onBlogsChange(this.props.db)
+      .onSnapshot(snap => this.setState({ blogs: snap.docs.map(el => el.data()) }));
+  }
+
+  componentWillUnmount() {
+    this.unsubscribe();
   }
 
   getAll() {
-    this.setState({ blogs: null });
-    Promise.all([
-      FirestoreService.getBlogs(this.props.db),
-      FirestoreService.getUsers(this.props.db)
-    ])
-      .then(([blogs, users]) => {
-        this.setState({ blogs, users });
-      });
+    FirestoreService.getUsers(this.props.db).then(users => this.setState({ users }));
   }
 
   findAuthor(email) {
@@ -41,20 +43,15 @@ class Blogs extends Component {
     if (this.state.message) {
       FirestoreService.postMessage(this.props.db, this.state.message, this.props.user.email);
       this.setState({ message: '' });
-      this.getAll();
     }
   }
 
   render() {
-    const { blogs } = this.state;
+    const { emoji } = this.state;
     return (
       <div className="blogs">
         <button className="btn btn-outline-secondary btn-sm logout" onClick={() => this.props.onLogout()}>Logout</button>
-        <h1>
-          <span role="img" aria-label="wave">🌊</span>
-          Blogs
-          <span role="img" aria-label="wave">🌊</span>
-        </h1>
+        <h1>{emoji.character}Posts{emoji.character}</h1>
         <div className="post-input input-group">
           <div className="input-group-prepend">
             <span className="input-group-text" id="inputGroup-sizing-sm">What&apos;s new?</span>
@@ -64,9 +61,7 @@ class Blogs extends Component {
             <button onClick={() => this.post()} className="btn btn-outline-secondary" type="button">Post</button>
           </div>
         </div>
-        {blogs === null ? <img className="spinner" src="img/loading.gif" /> :
-          blogs.map((blog, i) =>
-            <Post author={this.findAuthor(blog.author)} post={blog} key={i} />)}
+        <Feed users={this.state.users} blogs={this.state.blogs} />
       </div>
     );
   }

@@ -142,6 +142,11 @@ var FirestoreService = function () {
         return el.docs[0] ? el.docs[0].data() : null;
       });
     }
+  }, {
+    key: 'onBlogsChange',
+    value: function onBlogsChange(db) {
+      return db.collection('blogs').orderBy('timeStamp', 'desc');
+    }
   }]);
 
   return FirestoreService;
@@ -262,7 +267,7 @@ var App = function (_Component) {
                 } });
             } }),
           _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/user/:email', render: function render(data) {
-              return _react2.default.createElement(_Profile2.default, { email: data.match.params.email, db: _this3.state.db });
+              return _react2.default.createElement(_Profile2.default, { goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
             } })
         )
       );
@@ -290,21 +295,23 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
-var _slicedToArray = function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i["return"]) _i["return"](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError("Invalid attempt to destructure non-iterable instance"); } }; }();
-
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
 var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
 
+var _randomEmoji = __webpack_require__(/*! random-emoji */ "./node_modules/random-emoji/index.js");
+
+var _randomEmoji2 = _interopRequireDefault(_randomEmoji);
+
+var _Feed = __webpack_require__(/*! ./Feed */ "./client/components/Feed.jsx");
+
+var _Feed2 = _interopRequireDefault(_Feed);
+
 var _FirestoreService = __webpack_require__(/*! ../FirestoreService */ "./client/FirestoreService.js");
 
 var _FirestoreService2 = _interopRequireDefault(_FirestoreService);
-
-var _Post = __webpack_require__(/*! ./Post */ "./client/components/Post.jsx");
-
-var _Post2 = _interopRequireDefault(_Post);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -325,7 +332,8 @@ var Blogs = function (_Component) {
     _this.state = {
       blogs: null,
       users: null,
-      message: ''
+      message: '',
+      emoji: _randomEmoji2.default.random({ count: 1 })[0]
     };
     return _this;
   }
@@ -333,20 +341,27 @@ var Blogs = function (_Component) {
   _createClass(Blogs, [{
     key: 'componentDidMount',
     value: function componentDidMount() {
+      var _this2 = this;
+
       this.getAll();
+      this.unsubscribe = _FirestoreService2.default.onBlogsChange(this.props.db).onSnapshot(function (snap) {
+        return _this2.setState({ blogs: snap.docs.map(function (el) {
+            return el.data();
+          }) });
+      });
+    }
+  }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      this.unsubscribe();
     }
   }, {
     key: 'getAll',
     value: function getAll() {
-      var _this2 = this;
+      var _this3 = this;
 
-      this.setState({ blogs: null });
-      Promise.all([_FirestoreService2.default.getBlogs(this.props.db), _FirestoreService2.default.getUsers(this.props.db)]).then(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 2),
-            blogs = _ref2[0],
-            users = _ref2[1];
-
-        _this2.setState({ blogs: blogs, users: users });
+      _FirestoreService2.default.getUsers(this.props.db).then(function (users) {
+        return _this3.setState({ users: users });
       });
     }
   }, {
@@ -369,15 +384,14 @@ var Blogs = function (_Component) {
       if (this.state.message) {
         _FirestoreService2.default.postMessage(this.props.db, this.state.message, this.props.user.email);
         this.setState({ message: '' });
-        this.getAll();
       }
     }
   }, {
     key: 'render',
     value: function render() {
-      var _this3 = this;
+      var _this4 = this;
 
-      var blogs = this.state.blogs;
+      var emoji = this.state.emoji;
 
       return _react2.default.createElement(
         'div',
@@ -385,24 +399,16 @@ var Blogs = function (_Component) {
         _react2.default.createElement(
           'button',
           { className: 'btn btn-outline-secondary btn-sm logout', onClick: function onClick() {
-              return _this3.props.onLogout();
+              return _this4.props.onLogout();
             } },
           'Logout'
         ),
         _react2.default.createElement(
           'h1',
           null,
-          _react2.default.createElement(
-            'span',
-            { role: 'img', 'aria-label': 'wave' },
-            '\uD83C\uDF0A'
-          ),
-          'Blogs',
-          _react2.default.createElement(
-            'span',
-            { role: 'img', 'aria-label': 'wave' },
-            '\uD83C\uDF0A'
-          )
+          emoji.character,
+          'Posts',
+          emoji.character
         ),
         _react2.default.createElement(
           'div',
@@ -417,9 +423,9 @@ var Blogs = function (_Component) {
             )
           ),
           _react2.default.createElement('input', { value: this.state.message, onChange: function onChange(e) {
-              return _this3.setState({ message: e.target.value });
+              return _this4.setState({ message: e.target.value });
             }, onKeyPress: function onKeyPress(e) {
-              return _this3.handleEnter(e);
+              return _this4.handleEnter(e);
             }, className: 'form-control', type: 'text' }),
           _react2.default.createElement(
             'div',
@@ -427,15 +433,13 @@ var Blogs = function (_Component) {
             _react2.default.createElement(
               'button',
               { onClick: function onClick() {
-                  return _this3.post();
+                  return _this4.post();
                 }, className: 'btn btn-outline-secondary', type: 'button' },
               'Post'
             )
           )
         ),
-        blogs === null ? _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' }) : blogs.map(function (blog, i) {
-          return _react2.default.createElement(_Post2.default, { author: _this3.findAuthor(blog.author), post: blog, key: i });
-        })
+        _react2.default.createElement(_Feed2.default, { users: this.state.users, blogs: this.state.blogs })
       );
     }
   }]);
@@ -444,6 +448,54 @@ var Blogs = function (_Component) {
 }(_react.Component);
 
 exports.default = Blogs;
+
+/***/ }),
+
+/***/ "./client/components/Feed.jsx":
+/*!************************************!*\
+  !*** ./client/components/Feed.jsx ***!
+  \************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+
+var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
+
+var _react2 = _interopRequireDefault(_react);
+
+var _Post = __webpack_require__(/*! ./Post */ "./client/components/Post.jsx");
+
+var _Post2 = _interopRequireDefault(_Post);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+var Feed = function Feed(_ref) {
+  var users = _ref.users,
+      blogs = _ref.blogs;
+
+  if (blogs === null || users === null) {
+    return _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' });
+  } else if (blogs.length > 0) {
+    return blogs.map(function (blog, i) {
+      return _react2.default.createElement(_Post2.default, { author: users.find(function (user) {
+          return user.email === blog.author;
+        }), post: blog, key: i });
+    });
+  }
+  return _react2.default.createElement(
+    'h3',
+    { className: 'no-posts' },
+    'No posts yet \uD83D\uDE14'
+  );
+};
+
+exports.default = Feed;
 
 /***/ }),
 
@@ -477,7 +529,7 @@ var login = function login(cb) {
     if (user) {
       cb(user);
     }
-  }).catch(console.error);
+  });
 };
 
 var Login = function Login(_ref) {
@@ -520,33 +572,35 @@ var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
 
+var _reactRouterDom = __webpack_require__(/*! react-router-dom */ "./node_modules/react-router-dom/es/index.js");
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var Post = function Post(props) {
   return _react2.default.createElement(
-    "div",
-    { className: "post row" },
+    'div',
+    { className: 'post row' },
     _react2.default.createElement(
-      "div",
-      { className: "author col-md-3" },
-      _react2.default.createElement("div", { className: "photo", style: { backgroundImage: "url('" + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + "')" } }),
+      'div',
+      { className: 'author col-md-3' },
       _react2.default.createElement(
-        "span",
-        null,
+        _reactRouterDom.Link,
+        { href: '/', to: '/user/' + encodeURIComponent(props.author.email) },
+        _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
         props.author.displayName
       )
     ),
     _react2.default.createElement(
-      "div",
-      { className: "text col-md-9" },
+      'div',
+      { className: 'text col-md-9' },
       _react2.default.createElement(
-        "p",
-        { className: "body" },
+        'p',
+        { className: 'body' },
         props.post.body
       ),
       _react2.default.createElement(
-        "p",
-        { className: "date" },
+        'p',
+        { className: 'date' },
         props.post.timeStamp.toDate().toLocaleString()
       )
     )
@@ -579,9 +633,13 @@ var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
 
-var _Post = __webpack_require__(/*! ./Post */ "./client/components/Post.jsx");
+var _randomEmoji = __webpack_require__(/*! random-emoji */ "./node_modules/random-emoji/index.js");
 
-var _Post2 = _interopRequireDefault(_Post);
+var _randomEmoji2 = _interopRequireDefault(_randomEmoji);
+
+var _Feed = __webpack_require__(/*! ./Feed */ "./client/components/Feed.jsx");
+
+var _Feed2 = _interopRequireDefault(_Feed);
 
 var _FirestoreService = __webpack_require__(/*! ../FirestoreService */ "./client/FirestoreService.js");
 
@@ -605,7 +663,8 @@ var Profile = function (_Component) {
 
     _this.state = {
       blogs: null,
-      user: null
+      user: null,
+      emoji: _randomEmoji2.default.random({ count: 1 })[0]
     };
     return _this;
   }
@@ -627,9 +686,12 @@ var Profile = function (_Component) {
   }, {
     key: 'render',
     value: function render() {
+      var _this3 = this;
+
       var _state = this.state,
           blogs = _state.blogs,
-          user = _state.user;
+          user = _state.user,
+          emoji = _state.emoji;
 
       return _react2.default.createElement(
         'div',
@@ -638,18 +700,49 @@ var Profile = function (_Component) {
           'div',
           null,
           _react2.default.createElement(
+            'button',
+            { className: 'btn btn-link go-back', onClick: function onClick() {
+                return _this3.props.goBack();
+              } },
+            _react2.default.createElement('i', { className: 'fas fa-arrow-left' })
+          ),
+          _react2.default.createElement(
             'div',
             { className: 'profile' },
-            _react2.default.createElement('img', { src: user.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png' }),
+            _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (user.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
             _react2.default.createElement(
               'p',
-              null,
+              { className: 'name' },
               user.displayName
+            ),
+            _react2.default.createElement(
+              'p',
+              { className: 'email' },
+              _react2.default.createElement(
+                'a',
+                { href: 'mailto:' + user.email },
+                user.email
+              )
+            ),
+            _react2.default.createElement(
+              'p',
+              { className: 'posts-count' },
+              'Posts count: ',
+              _react2.default.createElement(
+                'b',
+                null,
+                blogs.length
+              )
             )
           ),
-          blogs.map(function (blog, i) {
-            return _react2.default.createElement(_Post2.default, { author: user, post: blog, key: i });
-          })
+          _react2.default.createElement(
+            'h2',
+            null,
+            emoji.character,
+            'Posts',
+            emoji.character
+          ),
+          _react2.default.createElement(_Feed2.default, { users: [this.state.user], blogs: this.state.blogs })
         )
       );
     }
@@ -689,6 +782,28 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 document.addEventListener('DOMContentLoaded', function () {
   _reactDom2.default.render(_react2.default.createElement(_App2.default, null), document.getElementById('root'));
 }); /* global document */
+
+/***/ }),
+
+/***/ "./node_modules/emoji-named-characters/index.js":
+/*!******************************************************!*\
+  !*** ./node_modules/emoji-named-characters/index.js ***!
+  \******************************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+// universal module definition: https://github.com/umdjs/umd/blob/master/returnExports.js#L41
+(function (root, factory) {
+    if (true) {
+        // Node. Does not work with strict CommonJS, but
+        // only CommonJS-like enviroments that support module.exports,
+        // like Node.
+        module.exports = factory();
+    } else {}
+}(this, function () {
+    return {"100":{"character":"💯","syllables":3,"types":["noun"]},"1234":{"character":"🔢","syllables":4,"types":[]},"+1":{"character":"👍","syllables":2,"types":["interjection"]},"-1":{"character":"👎","syllables":3,"types":[]},"8ball":{"character":"🎱","syllables":2,"types":[]},"a":{"character":"🅰","syllables":1,"types":["noun","idiom","indefinite-article","preposition","auxiliary-verb","abbreviation"]},"ab":{"character":"🆎","syllables":1,"types":["noun"]},"abc":{"character":"🔤","syllables":3,"types":[]},"abcd":{"character":"🔡","syllables":4,"types":[]},"accept":{"character":"🉑","syllables":2,"types":["verb-transitive","verb-intransitive"]},"aerial_tramway":{"character":"🚡","syllables":3,"types":[]},"airplane":{"character":"✈️","syllables":2,"types":["noun"]},"alarm_clock":{"character":"⏰","syllables":3,"types":[]},"alien":{"character":"👽","syllables":3,"types":["adjective","noun","verb-transitive"]},"ambulance":{"character":"🚑","syllables":3,"types":["noun"]},"anchor":{"character":"⚓️","syllables":2,"types":["noun","verb-transitive","verb-intransitive"]},"angel":{"character":"👼","syllables":2,"types":["noun"]},"anger":{"character":"💢","syllables":2,"types":["noun","verb-transitive","verb-intransitive"]},"angry":{"character":"😠","syllables":2,"types":["adjective"]},"anguished":{"character":"😟","syllables":2,"types":["adjective"]},"ant":{"character":"🐜","syllables":1,"types":["noun","idiom"]},"apple":{"character":"🍎","syllables":2,"types":["noun","idiom"]},"aquarius":{"character":"♒️","syllables":4,"types":[]},"aries":{"character":"♈️","syllables":2,"types":[]},"arrow_backward":{"character":"◀️","syllables":4,"types":[]},"arrow_double_down":{"character":"⏬","syllables":5,"types":[]},"arrow_double_up":{"character":"⏫","syllables":5,"types":[]},"arrow_down":{"character":"⬇️","syllables":3,"types":[]},"arrow_down_small":{"character":"🔽","syllables":4,"types":[]},"arrow_forward":{"character":"▶️","syllables":4,"types":[]},"arrow_heading_down":{"character":"⤵️","syllables":5,"types":[]},"arrow_heading_up":{"character":"⤴️","syllables":5,"types":[]},"arrow_left":{"character":"⬅️","syllables":3,"types":[]},"arrow_lower_left":{"character":"↙️","syllables":5,"types":[]},"arrow_lower_right":{"character":"↘️","syllables":5,"types":[]},"arrow_right":{"character":"➡️","syllables":3,"types":[]},"arrow_right_hook":{"character":"↪️","syllables":4,"types":[]},"arrow_up":{"character":"⬆️","syllables":3,"types":[]},"arrow_up_down":{"character":"↕️","syllables":4,"types":[]},"arrow_up_small":{"character":"🔼","syllables":4,"types":[]},"arrow_upper_left":{"character":"↖️","syllables":5,"types":[]},"arrow_upper_right":{"character":"↗️","syllables":5,"types":[]},"arrows_clockwise":{"character":"🔃","syllables":4,"types":[]},"arrows_counterclockwise":{"character":"🔄","syllables":6,"types":[]},"art":{"character":"🎨","syllables":1,"types":["noun","verb"]},"articulated_lorry":{"character":"🚛","syllables":7,"types":[]},"astonished":{"character":"😲","syllables":3,"types":["adjective","verb"]},"atm":{"character":"🏧","syllables":3,"types":["abbreviation"]},"b":{"character":"🅱","syllables":1,"types":["noun","abbreviation"]},"baby":{"character":"👶","syllables":2,"types":["noun","adjective","verb-transitive"]},"baby_bottle":{"character":"🍼","syllables":4,"types":[]},"baby_chick":{"character":"🐤","syllables":3,"types":[]},"baby_symbol":{"character":"🚼","syllables":4,"types":[]},"baggage_claim":{"character":"🛄","syllables":3,"types":[]},"balloon":{"character":"🎈","syllables":2,"types":["noun","verb-intransitive","verb-transitive","adjective"]},"ballot_box_with_check":{"character":"☑️","syllables":5,"types":[]},"bamboo":{"character":"🎍","syllables":2,"types":["noun"]},"banana":{"character":"🍌","syllables":3,"types":["noun"]},"bangbang":{"character":"‼️","syllables":2,"types":[]},"bank":{"character":"🏦","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb"]},"bar_chart":{"character":"📊","syllables":2,"types":[]},"barber":{"character":"💈","syllables":2,"types":["noun","verb-transitive","verb-intransitive"]},"baseball":{"character":"⚾️","syllables":2,"types":["noun"]},"basketball":{"character":"🏀","syllables":3,"types":["noun"]},"bath":{"character":"🛀","syllables":1,"types":["noun"]},"bathtub":{"character":"🛁","syllables":2,"types":["noun"]},"battery":{"character":"🔋","syllables":3,"types":["noun"]},"bear":{"character":"🐻","syllables":1,"types":["verb-transitive","verb-intransitive","phrasal-verb","idiom","noun","adjective"]},"bee":{"character":"🐝","syllables":1,"types":["noun","idiom"]},"beer":{"character":"🍺","syllables":1,"types":["noun"]},"beers":{"character":"🍻","syllables":1,"types":["noun"]},"beetle":{"character":"🐞","syllables":2,"types":["noun","verb-intransitive","adjective"]},"beginner":{"character":"🔰","syllables":3,"types":["noun"]},"bell":{"character":"🔔","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"bento":{"character":"🍱","syllables":2,"types":["noun"]},"bicyclist":{"character":"🚴","syllables":3,"types":["noun"]},"bike":{"character":"🚲","syllables":1,"types":["noun","verb-intransitive"]},"bikini":{"character":"👙","syllables":3,"types":["noun"]},"bird":{"character":"🐦","syllables":1,"types":["noun","verb-intransitive","idiom"]},"birthday":{"character":"🎂","syllables":2,"types":["noun"]},"black_circle":{"character":"⚫","syllables":3,"types":[]},"black_joker":{"character":"🃏","syllables":3,"types":[]},"black_nib":{"character":"✒️","syllables":2,"types":[]},"black_square":{"character":"⬛️","syllables":2,"types":[]},"black_square_button":{"character":"🔲","syllables":4,"types":[]},"blossom":{"character":"🌼","syllables":2,"types":["noun","verb-intransitive"]},"blowfish":{"character":"🐡","syllables":2,"types":["noun"]},"blue_book":{"character":"📘","syllables":2,"types":[]},"blue_car":{"character":"🚙","syllables":2,"types":[]},"blue_heart":{"character":"💙","syllables":2,"types":[]},"blush":{"character":"😊","syllables":1,"types":["verb-intransitive","noun"]},"boar":{"character":"🐗","syllables":1,"types":["noun"]},"boat":{"character":"⛵️","syllables":1,"types":["noun","verb-intransitive","verb-transitive","idiom"]},"bomb":{"character":"💣","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"book":{"character":"📖","syllables":1,"types":["noun","verb-transitive","verb-intransitive","adjective","idiom"]},"bookmark":{"character":"🔖","syllables":2,"types":["noun"]},"bookmark_tabs":{"character":"📑","syllables":3,"types":[]},"books":{"character":"📚","syllables":1,"types":["noun","verb"]},"boom":{"character":"💥","syllables":1,"types":["verb-intransitive","verb-transitive","noun","idiom"]},"boot":{"character":"👢","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"bouquet":{"character":"💐","syllables":2,"types":["noun"]},"bow":{"character":"🙇","syllables":1,"types":["noun","verb-intransitive","verb-transitive","phrasal-verb","idiom"]},"bowling":{"character":"🎳","syllables":2,"types":["noun"]},"boy":{"character":"👦","syllables":1,"types":["noun","interjection"]},"bread":{"character":"🍞","syllables":1,"types":["noun","verb-transitive"]},"bride_with_veil":{"character":"👰","syllables":3,"types":[]},"bridge_at_night":{"character":"🌉","syllables":3,"types":[]},"briefcase":{"character":"💼","syllables":2,"types":["noun"]},"broken_heart":{"character":"💔","syllables":3,"types":[]},"bug":{"character":"🐛","syllables":1,"types":["noun","verb-intransitive","verb-transitive","phrasal-verb","idiom"]},"bulb":{"character":"💡","syllables":1,"types":["noun"]},"bullettrain_front":{"character":"🚆","syllables":4,"types":[]},"bullettrain_side":{"character":"🚅","syllables":4,"types":[]},"bus":{"character":"🚌","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"busstop":{"character":"🚏","syllables":2,"types":[]},"bust_in_silhouette":{"character":"👤","syllables":5,"types":[]},"busts_in_silhouette":{"character":"👥","syllables":5,"types":[]},"cactus":{"character":"🌵","syllables":2,"types":["noun"]},"cake":{"character":"🍰","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"calendar":{"character":"📆","syllables":3,"types":["noun","verb-transitive"]},"calling":{"character":"📲","syllables":2,"types":["noun"]},"camel":{"character":"🐫","syllables":2,"types":["noun"]},"camera":{"character":"📷","syllables":3,"types":["noun","idiom"]},"cancer":{"character":"♋️","syllables":2,"types":["noun"]},"candy":{"character":"🍬","syllables":2,"types":["noun","verb-transitive","verb-intransitive"]},"capital_abcd":{"character":"🔠","syllables":7,"types":[]},"capricorn":{"character":"♑️","syllables":3,"types":[]},"car":{"character":"🚗","syllables":1,"types":["noun"]},"card_index":{"character":"📇","syllables":3,"types":[]},"carousel_horse":{"character":"🎠","syllables":4,"types":[]},"cat":{"character":"🐱","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"cat2":{"character":"🐈","syllables":2,"types":[]},"cd":{"character":"💿","syllables":2,"types":["abbreviation"]},"chart":{"character":"💹","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"chart_with_downwards_trend":{"character":"📉","syllables":5,"types":[]},"chart_with_upwards_trend":{"character":"📈","syllables":5,"types":[]},"checkered_flag":{"character":"🏁","syllables":3,"types":[]},"cherries":{"character":"🍒","syllables":2,"types":["noun"]},"cherry_blossom":{"character":"🌸","syllables":4,"types":[]},"chestnut":{"character":"🌰","syllables":2,"types":["noun","adjective"]},"chicken":{"character":"🐔","syllables":2,"types":["noun","adjective","verb-intransitive"]},"children_crossing":{"character":"🚸","syllables":4,"types":[]},"chocolate_bar":{"character":"🍫","syllables":3,"types":[]},"christmas_tree":{"character":"🎄","syllables":3,"types":[]},"church":{"character":"⛪️","syllables":1,"types":["noun","verb-transitive","adjective"]},"cinema":{"character":"🎦","syllables":3,"types":["noun"]},"circus_tent":{"character":"🎪","syllables":3,"types":[]},"city_sunrise":{"character":"🌇","syllables":4,"types":[]},"city_sunset":{"character":"🌆","syllables":4,"types":[]},"cl":{"character":"🆑","syllables":2,"types":["abbreviation"]},"clap":{"character":"👏","syllables":1,"types":["verb-intransitive","verb-transitive","noun"]},"clapper":{"character":"🎬","syllables":2,"types":["noun"]},"clipboard":{"character":"📋","syllables":2,"types":["noun"]},"clock1":{"character":"🕐","syllables":2,"types":[]},"clock10":{"character":"🕙","syllables":2,"types":[]},"clock1030":{"character":"🕥","syllables":4,"types":[]},"clock11":{"character":"🕚","syllables":4,"types":[]},"clock1130":{"character":"🕦","syllables":6,"types":[]},"clock12":{"character":"🕛","syllables":2,"types":[]},"clock1230":{"character":"🕧","syllables":4,"types":[]},"clock130":{"character":"🕜","syllables":4,"types":[]},"clock2":{"character":"🕑","syllables":2,"types":[]},"clock230":{"character":"🕝","syllables":4,"types":[]},"clock3":{"character":"🕒","syllables":2,"types":[]},"clock330":{"character":"🕞","syllables":4,"types":[]},"clock4":{"character":"🕓","syllables":2,"types":[]},"clock430":{"character":"🕟","syllables":4,"types":[]},"clock5":{"character":"🕔","syllables":2,"types":[]},"clock530":{"character":"🕠","syllables":4,"types":[]},"clock6":{"character":"🕕","syllables":2,"types":[]},"clock630":{"character":"🕡","syllables":4,"types":[]},"clock7":{"character":"🕖","syllables":3,"types":[]},"clock730":{"character":"🕢","syllables":5,"types":[]},"clock8":{"character":"🕗","syllables":2,"types":[]},"clock830":{"character":"🕣","syllables":4,"types":[]},"clock9":{"character":"🕘","syllables":2,"types":[]},"clock930":{"character":"🕤","syllables":4,"types":[]},"closed_book":{"character":"📕","syllables":2,"types":[]},"closed_lock_with_key":{"character":"🔐","syllables":4,"types":[]},"closed_umbrella":{"character":"🌂","syllables":4,"types":[]},"cloud":{"character":"☁️","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"clubs":{"character":"♣️","syllables":1,"types":["verb","noun"]},"cn":{"character":"🇨🇳","syllables":2,"types":[]},"cocktail":{"character":"🍸","syllables":2,"types":["noun","adjective"]},"coffee":{"character":"☕️","syllables":2,"types":["noun"]},"cold_sweat":{"character":"😰","syllables":2,"types":[]},"collision":{"character":"💥","syllables":3,"types":["noun"]},"computer":{"character":"💻","syllables":3,"types":["noun"]},"confetti_ball":{"character":"🎊","syllables":4,"types":[]},"confounded":{"character":"😖","syllables":3,"types":["adjective"]},"confused":{"character":"😕","syllables":2,"types":["adjective"]},"congratulations":{"character":"㊗️","syllables":5,"types":["interjection","noun"]},"construction":{"character":"🚧","syllables":3,"types":["noun"]},"construction_worker":{"character":"👷","syllables":5,"types":[]},"convenience_store":{"character":"🏪","syllables":4,"types":[]},"cookie":{"character":"🍪","syllables":2,"types":["noun"]},"cool":{"character":"🆒","syllables":1,"types":["adjective","adverb","verb-transitive","verb-intransitive","noun","idiom"]},"cop":{"character":"👮","syllables":1,"types":["noun","verb-transitive","phrasal-verb","idiom"]},"copyright":{"character":"©","syllables":3,"types":["noun","adjective","verb-transitive"]},"corn":{"character":"🌽","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"couple":{"character":"👫","syllables":2,"types":["noun","verb-transitive","verb-intransitive","adjective"]},"couple_with_heart":{"character":"💑","syllables":4,"types":[]},"couplekiss":{"character":"💏","syllables":3,"types":[]},"cow":{"character":"🐮","syllables":1,"types":["noun","idiom","verb-transitive"]},"cow2":{"character":"🐄","syllables":2,"types":[]},"credit_card":{"character":"💳","syllables":3,"types":[]},"crocodile":{"character":"🐊","syllables":3,"types":["noun"]},"crossed_flags":{"character":"🎌","syllables":2,"types":[]},"crown":{"character":"👑","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"cry":{"character":"😢","syllables":1,"types":["verb-intransitive","verb-transitive","noun","phrasal-verb","idiom"]},"crying_cat_face":{"character":"😿","syllables":4,"types":[]},"crystal_ball":{"character":"🔮","syllables":3,"types":[]},"cupid":{"character":"💘","syllables":2,"types":["noun"]},"curly_loop":{"character":"➰","syllables":3,"types":[]},"currency_exchange":{"character":"💱","syllables":5,"types":[]},"curry":{"character":"🍛","syllables":2,"types":["verb-transitive","idiom","noun"]},"custard":{"character":"🍮","syllables":2,"types":["noun"]},"customs":{"character":"🛃","syllables":2,"types":["noun"]},"cyclone":{"character":"🌀","syllables":2,"types":["noun"]},"dancer":{"character":"💃","syllables":2,"types":["noun"]},"dancers":{"character":"👯","syllables":2,"types":["noun"]},"dango":{"character":"🍡","syllables":2,"types":[]},"dart":{"character":"🎯","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"dash":{"character":"💨","syllables":1,"types":["verb-transitive","verb-intransitive","noun"]},"date":{"character":"📅","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"de":{"character":"🇩🇪","syllables":1,"types":["noun","verb"]},"deciduous_tree":{"character":"🌳","syllables":5,"types":[]},"department_store":{"character":"🏬","syllables":4,"types":[]},"diamond_shape_with_a_dot_inside":{"character":"💠","syllables":8,"types":[]},"diamonds":{"character":"♦️","syllables":2,"types":["noun","verb"]},"disappointed":{"character":"😞","syllables":4,"types":["adjective"]},"disappointed_relieved":{"character":"😥","syllables":6,"types":[]},"dizzy":{"character":"💫","syllables":2,"types":["adjective","verb-transitive"]},"dizzy_face":{"character":"😵","syllables":3,"types":[]},"do_not_litter":{"character":"🚯","syllables":4,"types":[]},"dog":{"character":"🐶","syllables":1,"types":["noun","adverb","verb-transitive","idiom"]},"dog2":{"character":"🐕","syllables":2,"types":[]},"dollar":{"character":"💵","syllables":2,"types":["noun"]},"dolls":{"character":"🎎","syllables":1,"types":["noun"]},"dolphin":{"character":"🐬","syllables":2,"types":["noun"]},"donut":{"character":"🍩","syllables":2,"types":["noun"]},"door":{"character":"🚪","syllables":1,"types":["noun","verb-transitive","idiom"]},"doughnut":{"character":"🍩","syllables":2,"types":["noun"]},"dragon":{"character":"🐉","syllables":2,"types":["noun"]},"dragon_face":{"character":"🐲","syllables":3,"types":[]},"dress":{"character":"👗","syllables":1,"types":["verb-transitive","verb-intransitive","noun","adjective","phrasal-verb","idiom"]},"dromedary_camel":{"character":"🐪","syllables":6,"types":[]},"droplet":{"character":"💧","syllables":2,"types":["noun"]},"dvd":{"character":"📀","syllables":3,"types":[]},"e-mail":{"character":"📧","syllables":2,"types":["noun","verb-transitive"]},"ear":{"character":"👂","syllables":1,"types":["noun","idiom","verb-intransitive"]},"ear_of_rice":{"character":"🌾","syllables":3,"types":[]},"earth_africa":{"character":"🌍","syllables":4,"types":[]},"earth_americas":{"character":"🌎","syllables":5,"types":[]},"earth_asia":{"character":"🌏","syllables":3,"types":[]},"egg":{"character":"🍳","syllables":1,"types":["noun","verb-transitive","idiom"]},"eggplant":{"character":"🍆","syllables":2,"types":["noun"]},"eight":{"character":"8️⃣","syllables":1,"types":["noun"]},"eight_pointed_black_star":{"character":"✴️","syllables":5,"types":[]},"eight_spoked_asterisk":{"character":"✳️","syllables":4,"types":[]},"electric_plug":{"character":"🔌","syllables":4,"types":[]},"elephant":{"character":"🐘","syllables":3,"types":["noun"]},"email":{"character":"📩","syllables":2,"types":["noun","verb"]},"end":{"character":"🔚","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"envelope":{"character":"✉️","syllables":3,"types":["noun","idiom"]},"es":{"character":"🇪🇸","syllables":1,"types":["noun"]},"euro":{"character":"💶","syllables":2,"types":["noun"]},"european_castle":{"character":"🏰","syllables":6,"types":[]},"european_post_office":{"character":"🏤","syllables":7,"types":[]},"evergreen_tree":{"character":"🌲","syllables":4,"types":[]},"exclamation":{"character":"❗️","syllables":4,"types":["noun"]},"expressionless":{"character":"😑","syllables":4,"types":["adjective"]},"eyeglasses":{"character":"👓","syllables":3,"types":["noun"]},"eyes":{"character":"👀","syllables":1,"types":["noun","verb"]},"facepunch":{"character":"👊","syllables":2,"types":[]},"factory":{"character":"🏭","syllables":3,"types":["noun"]},"fallen_leaf":{"character":"🍂","syllables":3,"types":[]},"family":{"character":"👪","syllables":3,"types":["noun","adjective"]},"fast_forward":{"character":"⏩","syllables":3,"types":[]},"fax":{"character":"📠","syllables":1,"types":["noun","verb-transitive"]},"fearful":{"character":"😨","syllables":2,"types":["adjective"]},"feet":{"character":"👣","syllables":1,"types":["noun"]},"ferris_wheel":{"character":"🎡","syllables":3,"types":[]},"file_folder":{"character":"📁","syllables":3,"types":[]},"fire":{"character":"🔥","syllables":2,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"fire_engine":{"character":"🚒","syllables":4,"types":[]},"fireworks":{"character":"🎆","syllables":2,"types":["noun"]},"first_quarter_moon":{"character":"🌓","syllables":4,"types":[]},"first_quarter_moon_with_face":{"character":"🌛","syllables":6,"types":[]},"fish":{"character":"🐟","syllables":1,"types":["noun","verb-intransitive","verb-transitive","phrasal-verb","idiom"]},"fish_cake":{"character":"🍥","syllables":2,"types":[]},"fishing_pole_and_fish":{"character":"🎣","syllables":5,"types":[]},"fist":{"character":"✊","syllables":1,"types":["noun","verb-transitive"]},"five":{"character":"5️⃣","syllables":1,"types":["noun"]},"flags":{"character":"🎏","syllables":1,"types":["noun"]},"flashlight":{"character":"🔦","syllables":2,"types":["noun"]},"floppy_disk":{"character":"💾","syllables":3,"types":[]},"flower_playing_cards":{"character":"🎴","syllables":5,"types":[]},"flushed":{"character":"😳","syllables":1,"types":["adjective","verb"]},"foggy":{"character":"🌁","syllables":2,"types":["adjective"]},"football":{"character":"🏈","syllables":2,"types":["noun"]},"fork_and_knife":{"character":"🍴","syllables":3,"types":[]},"fountain":{"character":"⛲️","syllables":2,"types":["noun","verb-transitive"]},"four":{"character":"4️⃣","syllables":1,"types":["noun","idiom"]},"four_leaf_clover":{"character":"🍀","syllables":4,"types":[]},"fr":{"character":"🇫🇷","syllables":2,"types":[]},"free":{"character":"🆓","syllables":1,"types":["adjective","adverb","verb-transitive","idiom"]},"fried_shrimp":{"character":"🍤","syllables":2,"types":[]},"fries":{"character":"🍟","syllables":1,"types":["verb","noun"]},"frog":{"character":"🐸","syllables":1,"types":["noun"]},"frowning":{"character":"😦","syllables":2,"types":["verb"]},"fuelpump":{"character":"⛽️","syllables":2,"types":[]},"full_moon":{"character":"🌕","syllables":2,"types":[]},"full_moon_with_face":{"character":"🌝","syllables":4,"types":[]},"game_die":{"character":"🎲","syllables":2,"types":[]},"gb":{"character":"🇬🇧","syllables":2,"types":[]},"gem":{"character":"💎","syllables":1,"types":["noun","verb-transitive"]},"gemini":{"character":"♊️","syllables":3,"types":[]},"ghost":{"character":"👻","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"gift":{"character":"🎁","syllables":1,"types":["noun","verb-transitive"]},"gift_heart":{"character":"💝","syllables":2,"types":[]},"girl":{"character":"👧","syllables":1,"types":["noun"]},"globe_with_meridians":{"character":"🌐","syllables":2,"types":[]},"goat":{"character":"🐐","syllables":1,"types":["noun"]},"golf":{"character":"⛳️","syllables":1,"types":["noun","verb-intransitive"]},"grapes":{"character":"🍇","syllables":1,"types":["noun"]},"green_apple":{"character":"🍏","syllables":3,"types":[]},"green_book":{"character":"📗","syllables":2,"types":[]},"green_heart":{"character":"💚","syllables":2,"types":[]},"grey_exclamation":{"character":"❕","syllables":5,"types":[]},"grey_question":{"character":"❔","syllables":3,"types":[]},"grimacing":{"character":"😬","syllables":3,"types":["verb"]},"grin":{"character":"😁","syllables":1,"types":["verb-intransitive","verb-transitive","noun"]},"grinning":{"character":"😀","syllables":2,"types":["verb"]},"guardsman":{"character":"💂","syllables":2,"types":["noun"]},"guitar":{"character":"🎸","syllables":2,"types":["noun"]},"gun":{"character":"🔫","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"haircut":{"character":"💇","syllables":2,"types":["noun"]},"hamburger":{"character":"🍔","syllables":3,"types":["noun"]},"hammer":{"character":"🔨","syllables":2,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"hamster":{"character":"🐹","syllables":2,"types":["noun"]},"hand":{"character":"✋","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"handbag":{"character":"👜","syllables":2,"types":["noun"]},"hankey":{"character":"💩","syllables":2,"types":["noun"]},"hash":{"character":"#️⃣","syllables":1,"types":["noun","verb-transitive","idiom"]},"hatched_chick":{"character":"🐥","syllables":2,"types":[]},"hatching_chick":{"character":"🐣","syllables":3,"types":[]},"headphones":{"character":"🎧","syllables":2,"types":["noun"]},"hear_no_evil":{"character":"🙉","syllables":4,"types":[]},"heart":{"character":"❤️","syllables":1,"types":["noun","verb-transitive","idiom"]},"heart_decoration":{"character":"💟","syllables":5,"types":[]},"heart_eyes":{"character":"😍","syllables":2,"types":[]},"heart_eyes_cat":{"character":"😻","syllables":3,"types":[]},"heartbeat":{"character":"💓","syllables":2,"types":["noun"]},"heartpulse":{"character":"💗","syllables":2,"types":[]},"hearts":{"character":"♥️","syllables":1,"types":["noun","verb"]},"heavy_check_mark":{"character":"✔️","syllables":4,"types":[]},"heavy_division_sign":{"character":"➗","syllables":6,"types":[]},"heavy_dollar_sign":{"character":"💲","syllables":5,"types":[]},"heavy_exclamation_mark":{"character":"❗️","syllables":7,"types":[]},"heavy_minus_sign":{"character":"➖","syllables":5,"types":[]},"heavy_multiplication_x":{"character":"✖️","syllables":8,"types":[]},"heavy_plus_sign":{"character":"➕","syllables":4,"types":[]},"helicopter":{"character":"🚁","syllables":4,"types":["noun","verb-transitive"]},"herb":{"character":"🌿","syllables":1,"types":["noun"]},"hibiscus":{"character":"🌺","syllables":3,"types":["noun"]},"high_brightness":{"character":"🔆","syllables":3,"types":[]},"high_heel":{"character":"👠","syllables":2,"types":[]},"hocho":{"character":"🔪","syllables":2,"types":[]},"honey_pot":{"character":"🍯","syllables":3,"types":[]},"honeybee":{"character":"🐝","syllables":3,"types":["noun"]},"horse":{"character":"🐴","syllables":1,"types":["noun","verb-transitive","verb-intransitive","adjective","phrasal-verb","idiom"]},"horse_racing":{"character":"🏇","syllables":3,"types":[]},"hospital":{"character":"🏥","syllables":3,"types":["noun"]},"hotel":{"character":"🏨","syllables":2,"types":["noun"]},"hotsprings":{"character":"♨️","syllables":2,"types":[]},"hourglass":{"character":"⌛️","syllables":3,"types":["noun","adjective"]},"hourglass_flowing_sand":{"character":"⏳","syllables":6,"types":[]},"house":{"character":"🏠","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"house_with_garden":{"character":"🏡","syllables":4,"types":[]},"hushed":{"character":"😧","syllables":1,"types":["adjective","verb"]},"ice_cream":{"character":"🍨","syllables":2,"types":[]},"icecream":{"character":"🍦","syllables":2,"types":["noun"]},"id":{"character":"🆔","syllables":1,"types":["noun"]},"ideograph_advantage":{"character":"🉐","syllables":3,"types":[]},"imp":{"character":"👿","syllables":1,"types":["noun","verb-transitive"]},"inbox_tray":{"character":"📥","syllables":1,"types":[]},"incoming_envelope":{"character":"📨","syllables":6,"types":[]},"information_desk_person":{"character":"💁","syllables":7,"types":[]},"information_source":{"character":"ℹ️","syllables":5,"types":[]},"innocent":{"character":"😇","syllables":3,"types":["adjective","noun"]},"interrobang":{"character":"⁉️","syllables":4,"types":["noun"]},"iphone":{"character":"📱","syllables":2,"types":[]},"it":{"character":"🇮🇹","syllables":1,"types":["pronoun","noun","idiom"]},"izakaya_lantern":{"character":"🏮","syllables":2,"types":[]},"jack_o_lantern":{"character":"🎃","syllables":4,"types":[]},"japan":{"character":"🗾","syllables":2,"types":["noun","verb-transitive"]},"japanese_castle":{"character":"🏯","syllables":5,"types":[]},"japanese_goblin":{"character":"👺","syllables":5,"types":[]},"japanese_ogre":{"character":"👹","syllables":5,"types":[]},"jeans":{"character":"👖","syllables":1,"types":["noun"]},"joy":{"character":"😂","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"joy_cat":{"character":"😹","syllables":2,"types":[]},"jp":{"character":"🇯🇵","syllables":2,"types":["abbreviation"]},"key":{"character":"🔑","syllables":1,"types":["noun","adjective","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"keycap_ten":{"character":"🔟","syllables":1,"types":[]},"kimono":{"character":"👘","syllables":3,"types":["noun"]},"kiss":{"character":"💋","syllables":1,"types":["verb-transitive","verb-intransitive","noun","phrasal-verb","idiom"]},"kissing":{"character":"😗","syllables":2,"types":["verb","adjective"]},"kissing_cat":{"character":"😽","syllables":3,"types":[]},"kissing_closed_eyes":{"character":"😚","syllables":4,"types":[]},"kissing_face":{"character":"😚","syllables":3,"types":[]},"kissing_heart":{"character":"😘","syllables":3,"types":[]},"kissing_smiling_eyes":{"character":"😙","syllables":5,"types":[]},"koala":{"character":"🐨","syllables":3,"types":["noun"]},"koko":{"character":"🈁","syllables":2,"types":["noun"]},"kr":{"character":"🇰🇷","syllables":2,"types":[]},"large_blue_circle":{"character":"🔵","syllables":4,"types":[]},"large_blue_diamond":{"character":"🔷","syllables":4,"types":[]},"large_orange_diamond":{"character":"🔶","syllables":5,"types":[]},"last_quarter_moon":{"character":"🌗","syllables":4,"types":[]},"last_quarter_moon_with_face":{"character":"🌜","syllables":6,"types":[]},"laughing":{"character":"😆","syllables":2,"types":["noun","verb"]},"leaves":{"character":"🍃","syllables":1,"types":["noun"]},"ledger":{"character":"📒","syllables":2,"types":["noun"]},"left_luggage":{"character":"🛅","syllables":3,"types":[]},"left_right_arrow":{"character":"↔️","syllables":4,"types":[]},"leftwards_arrow_with_hook":{"character":"↩️","syllables":4,"types":[]},"lemon":{"character":"🍋","syllables":2,"types":["noun","adjective"]},"leo":{"character":"♌️","syllables":2,"types":[]},"leopard":{"character":"🐆","syllables":2,"types":["noun"]},"libra":{"character":"♎️","syllables":2,"types":["noun"]},"light_rail":{"character":"🚈","syllables":2,"types":[]},"link":{"character":"🔗","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"lips":{"character":"👄","syllables":1,"types":["noun"]},"lipstick":{"character":"💄","syllables":2,"types":["noun"]},"lock":{"character":"🔒","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"lock_with_ink_pen":{"character":"🔏","syllables":4,"types":[]},"lollipop":{"character":"🍭","syllables":3,"types":["noun"]},"loop":{"character":"➿","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"loudspeaker":{"character":"📢","syllables":3,"types":["noun"]},"love_hotel":{"character":"🏩","syllables":3,"types":[]},"love_letter":{"character":"💌","syllables":3,"types":[]},"low_brightness":{"character":"🔅","syllables":3,"types":[]},"m":{"character":"ⓜ","syllables":1,"types":["noun","abbreviation"]},"mag":{"character":"🔍","syllables":1,"types":["noun"]},"mag_right":{"character":"🔎","syllables":2,"types":[]},"mahjong":{"character":"🀄️","syllables":2,"types":["noun"]},"mailbox":{"character":"📫","syllables":2,"types":["noun"]},"mailbox_closed":{"character":"📪","syllables":3,"types":[]},"mailbox_with_mail":{"character":"📬","syllables":4,"types":[]},"mailbox_with_no_mail":{"character":"📭","syllables":5,"types":[]},"man":{"character":"👨","syllables":1,"types":["noun","verb-transitive","interjection","idiom"]},"man_with_gua_pi_mao":{"character":"👲","syllables":4,"types":[]},"man_with_turban":{"character":"👳","syllables":4,"types":[]},"mans_shoe":{"character":"👞","syllables":2,"types":[]},"maple_leaf":{"character":"🍁","syllables":3,"types":[]},"mask":{"character":"😷","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"massage":{"character":"💆","syllables":2,"types":["noun","verb-transitive"]},"meat_on_bone":{"character":"🍖","syllables":3,"types":[]},"mega":{"character":"📣","syllables":2,"types":["adjective"]},"melon":{"character":"🍈","syllables":2,"types":["noun"]},"memo":{"character":"📝","syllables":2,"types":["noun"]},"mens":{"character":"🚹","syllables":1,"types":[]},"metro":{"character":"🚇","syllables":2,"types":["noun","adjective"]},"microphone":{"character":"🎤","syllables":3,"types":["noun"]},"microscope":{"character":"🔬","syllables":3,"types":["noun"]},"milky_way":{"character":"🌌","syllables":3,"types":[]},"minibus":{"character":"🚐","syllables":3,"types":["noun"]},"minidisc":{"character":"💽","syllables":3,"types":["noun"]},"mobile_phone_off":{"character":"📴","syllables":4,"types":[]},"money_with_wings":{"character":"💸","syllables":4,"types":[]},"moneybag":{"character":"💰","syllables":3,"types":["noun"]},"monkey":{"character":"🐒","syllables":2,"types":["noun","verb-intransitive","verb-transitive"]},"monkey_face":{"character":"🐵","syllables":3,"types":[]},"monorail":{"character":"🚝","syllables":3,"types":["noun"]},"moon":{"character":"🌙","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"mortar_board":{"character":"🎓","syllables":3,"types":[]},"mount_fuji":{"character":"🗻","syllables":3,"types":[]},"mountain_bicyclist":{"character":"🚵","syllables":5,"types":[]},"mountain_cableway":{"character":"🚠","syllables":2,"types":[]},"mountain_railway":{"character":"🚞","syllables":4,"types":[]},"mouse":{"character":"🐭","syllables":1,"types":["noun","verb-intransitive"]},"mouse2":{"character":"🐁","syllables":2,"types":[]},"movie_camera":{"character":"🎥","syllables":5,"types":[]},"moyai":{"character":"🗿","syllables":2,"types":[]},"muscle":{"character":"💪","syllables":2,"types":["noun","verb-intransitive","verb-transitive"]},"mushroom":{"character":"🍄","syllables":2,"types":["noun","verb-intransitive","adjective"]},"musical_keyboard":{"character":"🎹","syllables":5,"types":[]},"musical_note":{"character":"🎵","syllables":4,"types":[]},"musical_score":{"character":"🎼","syllables":4,"types":[]},"mute":{"character":"🔇","syllables":1,"types":["adjective","noun","verb-transitive"]},"nail_care":{"character":"💅","syllables":2,"types":[]},"name_badge":{"character":"📛","syllables":2,"types":[]},"necktie":{"character":"👔","syllables":2,"types":["noun"]},"negative_squared_cross_mark":{"character":"❎","syllables":6,"types":[]},"neutral_face":{"character":"😐","syllables":3,"types":[]},"new":{"character":"🆕","syllables":1,"types":["adjective","adverb"]},"new_moon":{"character":"🌑","syllables":2,"types":[]},"new_moon_with_face":{"character":"🌚","syllables":4,"types":[]},"newspaper":{"character":"📰","syllables":3,"types":["noun"]},"ng":{"character":"🆖","syllables":1,"types":["abbreviation"]},"nine":{"character":"9️⃣","syllables":1,"types":["noun","idiom"]},"no_bell":{"character":"🔕","syllables":2,"types":[]},"no_bicycles":{"character":"🚳","syllables":4,"types":[]},"no_entry":{"character":"⛔️","syllables":3,"types":[]},"no_entry_sign":{"character":"🚫","syllables":4,"types":[]},"no_good":{"character":"🙅","syllables":2,"types":[]},"no_mobile_phones":{"character":"📵","syllables":4,"types":[]},"no_mouth":{"character":"😶","syllables":2,"types":[]},"no_pedestrians":{"character":"🚷","syllables":5,"types":[]},"no_smoking":{"character":"🚭","syllables":3,"types":[]},"non-potable_water":{"character":"🚱","syllables":6,"types":[]},"nose":{"character":"👃","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"notebook":{"character":"📓","syllables":2,"types":["noun"]},"notebook_with_decorative_cover":{"character":"📔","syllables":8,"types":[]},"notes":{"character":"🎶","syllables":1,"types":["noun"]},"nut_and_bolt":{"character":"🔩","syllables":3,"types":[]},"o":{"character":"⭕️","syllables":1,"types":["noun"]},"o2":{"character":"🅾","syllables":2,"types":[]},"ocean":{"character":"🌊","syllables":2,"types":["noun"]},"octopus":{"character":"🐙","syllables":3,"types":["noun"]},"oden":{"character":"🍢","syllables":2,"types":[]},"office":{"character":"🏢","syllables":2,"types":["noun"]},"ok":{"character":"🆗","syllables":2,"types":["adjective"]},"ok_hand":{"character":"👌","syllables":3,"types":[]},"ok_woman":{"character":"🙆","syllables":4,"types":[]},"older_man":{"character":"👴","syllables":3,"types":[]},"older_woman":{"character":"👵","syllables":4,"types":[]},"on":{"character":"🔛","syllables":1,"types":["preposition","adverb","adjective","idiom"]},"oncoming_automobile":{"character":"🚘","syllables":7,"types":[]},"oncoming_bus":{"character":"🚍","syllables":4,"types":[]},"oncoming_police_car":{"character":"🚔","syllables":6,"types":[]},"oncoming_taxi":{"character":"🚖","syllables":5,"types":[]},"one":{"character":"1️⃣","syllables":1,"types":["adjective","noun","pronoun","idiom"]},"open_file_folder":{"character":"📂","syllables":5,"types":[]},"open_hands":{"character":"👐","syllables":3,"types":[]},"open_mouth":{"character":"😮","syllables":3,"types":[]},"ophiuchus":{"character":"⛎","syllables":4,"types":[]},"orange_book":{"character":"📙","syllables":3,"types":[]},"outbox_tray":{"character":"📤","syllables":1,"types":[]},"ox":{"character":"🐂","syllables":1,"types":["noun"]},"page_facing_up":{"character":"📄","syllables":4,"types":[]},"page_with_curl":{"character":"📃","syllables":3,"types":[]},"pager":{"character":"📟","syllables":2,"types":["noun"]},"palm_tree":{"character":"🌴","syllables":2,"types":[]},"panda_face":{"character":"🐼","syllables":3,"types":[]},"paperclip":{"character":"📎","syllables":3,"types":["noun"]},"parking":{"character":"🅿️","syllables":2,"types":["noun"]},"part_alternation_mark":{"character":"〽️","syllables":6,"types":[]},"partly_sunny":{"character":"⛅️","syllables":4,"types":[]},"passport_control":{"character":"🛂","syllables":4,"types":[]},"paw_prints":{"character":"🐾","syllables":2,"types":[]},"peach":{"character":"🍑","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"pear":{"character":"🍐","syllables":1,"types":["noun"]},"pencil":{"character":"📝","syllables":2,"types":["noun","verb-transitive","phrasal-verb"]},"pencil2":{"character":"✏️","syllables":3,"types":[]},"penguin":{"character":"🐧","syllables":2,"types":["noun"]},"pensive":{"character":"😔","syllables":2,"types":["adjective"]},"performing_arts":{"character":"🎭","syllables":4,"types":[]},"persevere":{"character":"😣","syllables":3,"types":["verb-intransitive"]},"person_frowning":{"character":"🙍","syllables":4,"types":[]},"person_with_blond_hair":{"character":"👱","syllables":5,"types":[]},"person_with_pouting_face":{"character":"🙎","syllables":6,"types":[]},"phone":{"character":"☎️","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"pig":{"character":"🐷","syllables":1,"types":["noun","verb-intransitive","phrasal-verb","idiom"]},"pig2":{"character":"🐖","syllables":2,"types":[]},"pig_nose":{"character":"🐽","syllables":2,"types":[]},"pill":{"character":"💊","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"pineapple":{"character":"🍍","syllables":3,"types":["noun"]},"pisces":{"character":"♓️","syllables":2,"types":[]},"pizza":{"character":"🍕","syllables":2,"types":["noun"]},"plus1":{"character":"👍","syllables":2,"types":[]},"point_down":{"character":"👇","syllables":2,"types":[]},"point_left":{"character":"👈","syllables":2,"types":[]},"point_right":{"character":"👉","syllables":2,"types":[]},"point_up":{"character":"☝️","syllables":2,"types":[]},"point_up_2":{"character":"👆","syllables":2,"types":[]},"police_car":{"character":"🚓","syllables":3,"types":[]},"poodle":{"character":"🐩","syllables":2,"types":["noun"]},"poop":{"character":"💩","syllables":1,"types":["noun","verb-transitive","phrasal-verb","verb-intransitive"]},"post_office":{"character":"🏣","syllables":3,"types":[]},"postal_horn":{"character":"📯","syllables":3,"types":[]},"postbox":{"character":"📮","syllables":2,"types":["noun"]},"potable_water":{"character":"🚰","syllables":5,"types":[]},"pouch":{"character":"👝","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"poultry_leg":{"character":"🍗","syllables":3,"types":[]},"pound":{"character":"💷","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"pouting_cat":{"character":"😾","syllables":3,"types":[]},"pray":{"character":"🙏","syllables":1,"types":["verb-intransitive","verb-transitive"]},"princess":{"character":"👸","syllables":2,"types":["noun","adjective"]},"punch":{"character":"👊","syllables":1,"types":["noun","verb-transitive","phrasal-verb","idiom"]},"purple_heart":{"character":"💜","syllables":3,"types":[]},"purse":{"character":"👛","syllables":1,"types":["noun","verb-transitive"]},"pushpin":{"character":"📌","syllables":2,"types":["noun"]},"put_litter_in_its_place":{"character":"🚮","syllables":6,"types":[]},"question":{"character":"❓","syllables":2,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"rabbit":{"character":"🐰","syllables":2,"types":["noun","verb-intransitive"]},"rabbit2":{"character":"🐇","syllables":3,"types":[]},"racehorse":{"character":"🐎","syllables":2,"types":["noun"]},"radio":{"character":"📻","syllables":3,"types":["noun","verb-transitive","verb-intransitive"]},"radio_button":{"character":"🔘","syllables":5,"types":[]},"rage":{"character":"😡","syllables":1,"types":["noun","verb-intransitive"]},"railway_car":{"character":"🚋","syllables":3,"types":[]},"rainbow":{"character":"🌈","syllables":2,"types":["noun"]},"raised_hand":{"character":"✋","syllables":2,"types":[]},"raised_hands":{"character":"🙌","syllables":2,"types":[]},"raising_hand":{"character":"🙋","syllables":3,"types":[]},"ram":{"character":"🐏","syllables":1,"types":["noun","verb-transitive"]},"ramen":{"character":"🍜","syllables":2,"types":["noun"]},"rat":{"character":"🐀","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"recycle":{"character":"♻️","syllables":3,"types":["verb-transitive"]},"red_car":{"character":"🚗","syllables":2,"types":[]},"red_circle":{"character":"🔴","syllables":3,"types":[]},"registered":{"character":"®","syllables":3,"types":["adjective"]},"relaxed":{"character":"☺️","syllables":2,"types":["adjective"]},"relieved":{"character":"😌","syllables":2,"types":["adjective","verb"]},"repeat":{"character":"🔁","syllables":2,"types":["verb-transitive","verb-intransitive","noun","adjective"]},"repeat_one":{"character":"🔂","syllables":3,"types":[]},"restroom":{"character":"🚻","syllables":2,"types":["noun"]},"revolving_hearts":{"character":"💞","syllables":4,"types":[]},"rewind":{"character":"⏪","syllables":2,"types":["verb-transitive","noun"]},"ribbon":{"character":"🎀","syllables":2,"types":["noun","verb-transitive"]},"rice":{"character":"🍚","syllables":1,"types":["noun","verb-transitive"]},"rice_ball":{"character":"🍙","syllables":2,"types":[]},"rice_cracker":{"character":"🍘","syllables":3,"types":[]},"rice_scene":{"character":"🎑","syllables":2,"types":[]},"ring":{"character":"💍","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"rocket":{"character":"🚀","syllables":2,"types":["noun","verb-intransitive","verb-transitive"]},"roller_coaster":{"character":"🎢","syllables":4,"types":[]},"rooster":{"character":"🐓","syllables":2,"types":["noun"]},"rose":{"character":"🌹","syllables":1,"types":["noun","adjective","idiom","verb"]},"rotating_light":{"character":"🚨","syllables":4,"types":[]},"round_pushpin":{"character":"📍","syllables":3,"types":[]},"rowboat":{"character":"🚣","syllables":2,"types":["noun"]},"ru":{"character":"🇷🇺","syllables":1,"types":[]},"rugby_football":{"character":"🏉","syllables":4,"types":[]},"runner":{"character":"🏃","syllables":2,"types":["noun"]},"running":{"character":"🏃","syllables":2,"types":["noun","adjective","adverb","idiom"]},"running_shirt_with_sash":{"character":"🎽","syllables":5,"types":[]},"sa":{"character":"🈂","syllables":1,"types":[]},"sagittarius":{"character":"♐️","syllables":5,"types":[]},"sailboat":{"character":"⛵️","syllables":2,"types":["noun"]},"sake":{"character":"🍶","syllables":1,"types":["noun"]},"sandal":{"character":"👡","syllables":2,"types":["noun"]},"santa":{"character":"🎅","syllables":2,"types":[]},"satellite":{"character":"📡","syllables":3,"types":["noun"]},"satisfied":{"character":"😆","syllables":3,"types":["adjective"]},"saxophone":{"character":"🎷","syllables":3,"types":["noun"]},"school":{"character":"🏫","syllables":1,"types":["noun","verb-transitive","adjective","verb-intransitive"]},"school_satchel":{"character":"🎒","syllables":1,"types":[]},"scissors":{"character":"✂️","syllables":2,"types":["noun","verb"]},"scorpius":{"character":"♏️","syllables":3,"types":[]},"scream":{"character":"😱","syllables":1,"types":["verb-intransitive","verb-transitive","noun"]},"scream_cat":{"character":"🙀","syllables":2,"types":[]},"scroll":{"character":"📜","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"seat":{"character":"💺","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"secret":{"character":"㊙️","syllables":2,"types":["adjective","noun"]},"see_no_evil":{"character":"🙈","syllables":4,"types":[]},"seedling":{"character":"🌱","syllables":2,"types":["noun"]},"seven":{"character":"7️⃣","syllables":2,"types":["noun"]},"shaved_ice":{"character":"🍧","syllables":2,"types":[]},"sheep":{"character":"🐑","syllables":1,"types":["noun"]},"shell":{"character":"🐚","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb"]},"ship":{"character":"🚢","syllables":1,"types":["noun","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"shirt":{"character":"👕","syllables":1,"types":["noun","idiom"]},"shit":{"character":"💩","syllables":1,"types":["verb-intransitive","verb-transitive","noun","interjection","phrasal-verb","idiom"]},"shoe":{"character":"👟","syllables":1,"types":["noun","verb-transitive","idiom"]},"shower":{"character":"🚿","syllables":2,"types":["noun","verb-transitive","verb-intransitive"]},"signal_strength":{"character":"📶","syllables":3,"types":[]},"six":{"character":"6️⃣","syllables":1,"types":["noun","idiom"]},"six_pointed_star":{"character":"🔯","syllables":4,"types":[]},"ski":{"character":"🎿","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"skull":{"character":"💀","syllables":1,"types":["noun"]},"sleeping":{"character":"😴","syllables":2,"types":["verb","adjective","noun"]},"sleepy":{"character":"😪","syllables":2,"types":["adjective"]},"slot_machine":{"character":"🎰","syllables":3,"types":[]},"small_blue_diamond":{"character":"🔹","syllables":4,"types":[]},"small_orange_diamond":{"character":"🔸","syllables":5,"types":[]},"small_red_triangle":{"character":"🔺","syllables":5,"types":[]},"small_red_triangle_down":{"character":"🔻","syllables":6,"types":[]},"smile":{"character":"😄","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"smile_cat":{"character":"😸","syllables":2,"types":[]},"smiley":{"character":"😃","syllables":2,"types":["noun","adjective"]},"smiley_cat":{"character":"😺","syllables":3,"types":[]},"smiling_imp":{"character":"😈","syllables":3,"types":[]},"smirk":{"character":"😏","syllables":1,"types":["verb-intransitive","noun"]},"smirk_cat":{"character":"😼","syllables":2,"types":[]},"smoking":{"character":"🚬","syllables":2,"types":["adjective"]},"snail":{"character":"🐌","syllables":1,"types":["noun"]},"snake":{"character":"🐍","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"snowboarder":{"character":"🏂","syllables":3,"types":["noun"]},"snowflake":{"character":"❄️","syllables":2,"types":["noun"]},"snowman":{"character":"⛄️","syllables":2,"types":["noun"]},"sob":{"character":"😭","syllables":1,"types":["verb-intransitive","verb-transitive","noun"]},"soccer":{"character":"⚽️","syllables":2,"types":["noun"]},"soon":{"character":"🔜","syllables":1,"types":["adverb","idiom"]},"sos":{"character":"🆘","syllables":3,"types":[]},"sound":{"character":"🔉","syllables":1,"types":["noun","verb-intransitive","verb-transitive","phrasal-verb","adjective","adverb"]},"space_invader":{"character":"👾","syllables":4,"types":[]},"spades":{"character":"♠️","syllables":1,"types":["noun","verb"]},"spaghetti":{"character":"🍝","syllables":3,"types":["noun"]},"sparkler":{"character":"🎇","syllables":2,"types":["noun"]},"sparkles":{"character":"✨","syllables":2,"types":["noun","verb"]},"sparkling_heart":{"character":"💖","syllables":3,"types":[]},"speak_no_evil":{"character":"🙊","syllables":4,"types":[]},"speaker":{"character":"🔈","syllables":2,"types":["noun"]},"speech_balloon":{"character":"💬","syllables":3,"types":[]},"speedboat":{"character":"🚤","syllables":2,"types":["noun"]},"star":{"character":"⭐️","syllables":1,"types":["noun","adjective","verb-transitive","verb-intransitive","idiom"]},"star2":{"character":"🌟","syllables":2,"types":[]},"stars":{"character":"🌠","syllables":1,"types":["noun","verb"]},"station":{"character":"🚉","syllables":2,"types":["noun","verb-transitive"]},"statue_of_liberty":{"character":"🗽","syllables":6,"types":[]},"steam_locomotive":{"character":"🚂","syllables":5,"types":[]},"stew":{"character":"🍲","syllables":1,"types":["verb-transitive","verb-intransitive","noun"]},"straight_ruler":{"character":"📏","syllables":3,"types":[]},"strawberry":{"character":"🍓","syllables":3,"types":["noun","adjective"]},"stuck_out_tongue":{"character":"😛","syllables":3,"types":[]},"stuck_out_tongue_closed_eyes":{"character":"😝","syllables":5,"types":[]},"stuck_out_tongue_winking_eye":{"character":"😜","syllables":6,"types":[]},"sun_with_face":{"character":"🌞","syllables":3,"types":[]},"sunflower":{"character":"🌻","syllables":3,"types":["noun"]},"sunglasses":{"character":"😎","syllables":3,"types":["noun"]},"sunny":{"character":"☀️","syllables":2,"types":["adjective"]},"sunrise":{"character":"🌅","syllables":2,"types":["noun"]},"sunrise_over_mountains":{"character":"🌄","syllables":6,"types":[]},"surfer":{"character":"🏄","syllables":2,"types":["noun"]},"sushi":{"character":"🍣","syllables":2,"types":["noun"]},"suspension_railway":{"character":"🚟","syllables":5,"types":[]},"sweat":{"character":"😓","syllables":1,"types":["verb-intransitive","verb-transitive","noun","phrasal-verb","idiom"]},"sweat_drops":{"character":"💦","syllables":2,"types":[]},"sweat_smile":{"character":"😅","syllables":2,"types":[]},"sweet_potato":{"character":"🍠","syllables":4,"types":[]},"swimmer":{"character":"🏊","syllables":2,"types":["noun"]},"symbols":{"character":"🔣","syllables":2,"types":["noun"]},"syringe":{"character":"💉","syllables":2,"types":["noun"]},"tada":{"character":"🎉","syllables":2,"types":["interjection"]},"tanabata_tree":{"character":"🎋","syllables":5,"types":[]},"tangerine":{"character":"🍊","syllables":3,"types":["noun"]},"taurus":{"character":"♉️","syllables":2,"types":["noun"]},"taxi":{"character":"🚕","syllables":2,"types":["noun","verb-intransitive","verb-transitive"]},"tea":{"character":"🍵","syllables":1,"types":["noun"]},"telephone":{"character":"☎️","syllables":3,"types":["noun","verb-transitive","verb-intransitive"]},"telephone_receiver":{"character":"📞","syllables":6,"types":[]},"telescope":{"character":"🔭","syllables":3,"types":["noun","verb-transitive","verb-intransitive"]},"tennis":{"character":"🎾","syllables":2,"types":["noun"]},"tent":{"character":"⛺️","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"thought_balloon":{"character":"💭","syllables":3,"types":[]},"three":{"character":"3️⃣","syllables":1,"types":["noun"]},"thumbsdown":{"character":"👎","syllables":2,"types":[]},"thumbsup":{"character":"👍","syllables":2,"types":[]},"ticket":{"character":"🎫","syllables":2,"types":["noun","verb-transitive"]},"tiger":{"character":"🐯","syllables":2,"types":["noun"]},"tiger2":{"character":"🐅","syllables":3,"types":[]},"tired_face":{"character":"😫","syllables":3,"types":[]},"tm":{"character":"™","syllables":2,"types":[]},"toilet":{"character":"🚽","syllables":2,"types":["noun"]},"tokyo_tower":{"character":"🗼","syllables":5,"types":[]},"tomato":{"character":"🍅","syllables":3,"types":["noun"]},"tongue":{"character":"👅","syllables":1,"types":["noun","verb-transitive","verb-intransitive","idiom"]},"top":{"character":"🔝","syllables":1,"types":["noun","adjective","verb-transitive","verb-intransitive","phrasal-verb","idiom"]},"tophat":{"character":"🎩","syllables":2,"types":["noun"]},"tractor":{"character":"🚜","syllables":2,"types":["noun"]},"traffic_light":{"character":"🚥","syllables":3,"types":[]},"train":{"character":"🚋","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"train2":{"character":"🚆","syllables":2,"types":[]},"tram":{"character":"🚊","syllables":1,"types":["noun","verb-transitive"]},"triangular_flag_on_post":{"character":"🚩","syllables":7,"types":[]},"triangular_ruler":{"character":"📐","syllables":6,"types":[]},"trident":{"character":"🔱","syllables":2,"types":["noun","adjective"]},"triumph":{"character":"😤","syllables":2,"types":["verb-intransitive","noun"]},"trolleybus":{"character":"🚎","syllables":3,"types":["noun"]},"trophy":{"character":"🏆","syllables":2,"types":["noun"]},"tropical_drink":{"character":"🍹","syllables":4,"types":[]},"tropical_fish":{"character":"🐠","syllables":4,"types":[]},"truck":{"character":"🚚","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"trumpet":{"character":"🎺","syllables":2,"types":["noun","verb-intransitive","verb-transitive"]},"tshirt":{"character":"👕","syllables":2,"types":[]},"tulip":{"character":"🌷","syllables":2,"types":["noun"]},"turtle":{"character":"🐢","syllables":2,"types":["noun","verb-intransitive"]},"tv":{"character":"📺","syllables":2,"types":["noun"]},"twisted_rightwards_arrows":{"character":"🔀","syllables":4,"types":[]},"two":{"character":"2️⃣","syllables":1,"types":["noun","idiom"]},"two_hearts":{"character":"💕","syllables":2,"types":[]},"two_men_holding_hands":{"character":"👬","syllables":5,"types":[]},"two_women_holding_hands":{"character":"👭","syllables":6,"types":[]},"u5272":{"character":"🈹","syllables":0,"types":[]},"u5408":{"character":"🈴","syllables":0,"types":[]},"u55b6":{"character":"🈺","syllables":0,"types":[]},"u6307":{"character":"🈯️","syllables":0,"types":[]},"u6708":{"character":"🈷","syllables":0,"types":[]},"u6709":{"character":"🈶","syllables":0,"types":[]},"u6e80":{"character":"🈵","syllables":0,"types":[]},"u7121":{"character":"🈚️","syllables":0,"types":[]},"u7533":{"character":"🈸","syllables":0,"types":[]},"u7981":{"character":"🈲","syllables":0,"types":[]},"u7a7a":{"character":"🈳","syllables":0,"types":[]},"uk":{"character":"🇬🇧","syllables":2,"types":[]},"umbrella":{"character":"☔️","syllables":3,"types":["noun"]},"unamused":{"character":"😒","syllables":3,"types":["adjective"]},"underage":{"character":"🔞","syllables":3,"types":["noun","adjective"]},"unlock":{"character":"🔓","syllables":2,"types":["verb-transitive","verb-intransitive"]},"up":{"character":"🆙","syllables":1,"types":["adverb","adjective","preposition","noun","verb-transitive","verb-intransitive","idiom"]},"us":{"character":"🇺🇸","syllables":1,"types":["pronoun"]},"v":{"character":"✌️","syllables":1,"types":["noun"]},"vertical_traffic_light":{"character":"🚦","syllables":6,"types":[]},"vhs":{"character":"📼","syllables":3,"types":[]},"vibration_mode":{"character":"📳","syllables":4,"types":[]},"video_camera":{"character":"📹","syllables":6,"types":[]},"video_game":{"character":"🎮","syllables":4,"types":[]},"violin":{"character":"🎻","syllables":3,"types":["noun"]},"virgo":{"character":"♍️","syllables":2,"types":[]},"volcano":{"character":"🌋","syllables":3,"types":["noun"]},"vs":{"character":"🆚","syllables":2,"types":["preposition"]},"walking":{"character":"🚶","syllables":2,"types":["adjective","noun"]},"waning_crescent_moon":{"character":"🌘","syllables":5,"types":[]},"waning_gibbous_moon":{"character":"🌖","syllables":5,"types":[]},"warning":{"character":"⚠️","syllables":2,"types":["noun","adjective"]},"watch":{"character":"⌚️","syllables":1,"types":["verb-intransitive","verb-transitive","noun","phrasal-verb","idiom"]},"water_buffalo":{"character":"🐃","syllables":5,"types":[]},"watermelon":{"character":"🍉","syllables":4,"types":["noun"]},"wave":{"character":"👋","syllables":1,"types":["verb-intransitive","verb-transitive","noun","phrasal-verb"]},"wavy_dash":{"character":"〰","syllables":3,"types":[]},"waxing_crescent_moon":{"character":"🌒","syllables":5,"types":[]},"waxing_gibbous_moon":{"character":"🌔","syllables":5,"types":[]},"wc":{"character":"🚾","syllables":2,"types":[]},"weary":{"character":"😩","syllables":2,"types":["adjective","verb-transitive"]},"wedding":{"character":"💒","syllables":2,"types":["noun"]},"whale":{"character":"🐳","syllables":1,"types":["noun","verb-intransitive","verb-transitive"]},"whale2":{"character":"🐋","syllables":2,"types":[]},"wheelchair":{"character":"♿️","syllables":2,"types":["noun"]},"white_check_mark":{"character":"✅","syllables":3,"types":[]},"white_circle":{"character":"⚪","syllables":3,"types":[]},"white_flower":{"character":"💮","syllables":3,"types":[]},"white_large_square":{"character":"◻️","syllables":3,"types":[]},"white_square_button":{"character":"🔳","syllables":4,"types":[]},"wind_chime":{"character":"🎐","syllables":2,"types":[]},"wine_glass":{"character":"🍷","syllables":2,"types":[]},"wink":{"character":"😉","syllables":1,"types":["verb-intransitive","verb-transitive","noun","phrasal-verb"]},"wolf":{"character":"🐺","syllables":1,"types":["noun","verb-transitive","idiom"]},"woman":{"character":"👩","syllables":2,"types":["noun","idiom"]},"womans_clothes":{"character":"👚","syllables":3,"types":[]},"womans_hat":{"character":"👒","syllables":3,"types":[]},"womens":{"character":"🚺","syllables":2,"types":[]},"worried":{"character":"😟","syllables":2,"types":["adjective","verb"]},"wrench":{"character":"🔧","syllables":1,"types":["noun","verb-transitive","verb-intransitive"]},"x":{"character":"❌","syllables":1,"types":["noun","verb-transitive",null]},"yellow_heart":{"character":"💛","syllables":3,"types":[]},"yen":{"character":"💴","syllables":1,"types":["noun","verb-intransitive"]},"yum":{"character":"😋","syllables":1,"types":["interjection"]},"zap":{"character":"⚡️","syllables":1,"types":["verb-transitive","verb-intransitive","noun","interjection"]},"zero":{"character":"0️⃣","syllables":2,"types":["noun","adjective","verb-transitive","phrasal-verb"]},"zzz":{"character":"💤","syllables":0,"types":["interjection","verb"]}};
+}));
+
 
 /***/ }),
 
@@ -3834,6 +3949,1200 @@ module.exports = invariant;
 
 /***/ }),
 
+/***/ "./node_modules/lodash.shuffle/index.js":
+/*!**********************************************!*\
+  !*** ./node_modules/lodash.shuffle/index.js ***!
+  \**********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+/* WEBPACK VAR INJECTION */(function(global) {/**
+ * lodash (Custom Build) <https://lodash.com/>
+ * Build: `lodash modularize exports="npm" -o ./`
+ * Copyright jQuery Foundation and other contributors <https://jquery.org/>
+ * Released under MIT license <https://lodash.com/license>
+ * Based on Underscore.js 1.8.3 <http://underscorejs.org/LICENSE>
+ * Copyright Jeremy Ashkenas, DocumentCloud and Investigative Reporters & Editors
+ */
+
+/** Used as references for various `Number` constants. */
+var INFINITY = 1 / 0,
+    MAX_SAFE_INTEGER = 9007199254740991,
+    MAX_INTEGER = 1.7976931348623157e+308,
+    NAN = 0 / 0;
+
+/** Used as references for the maximum length and index of an array. */
+var MAX_ARRAY_LENGTH = 4294967295;
+
+/** `Object#toString` result references. */
+var argsTag = '[object Arguments]',
+    funcTag = '[object Function]',
+    genTag = '[object GeneratorFunction]',
+    mapTag = '[object Map]',
+    objectTag = '[object Object]',
+    promiseTag = '[object Promise]',
+    setTag = '[object Set]',
+    stringTag = '[object String]',
+    symbolTag = '[object Symbol]',
+    weakMapTag = '[object WeakMap]';
+
+var dataViewTag = '[object DataView]';
+
+/**
+ * Used to match `RegExp`
+ * [syntax characters](http://ecma-international.org/ecma-262/7.0/#sec-patterns).
+ */
+var reRegExpChar = /[\\^$.*+?()[\]{}|]/g;
+
+/** Used to match leading and trailing whitespace. */
+var reTrim = /^\s+|\s+$/g;
+
+/** Used to detect bad signed hexadecimal string values. */
+var reIsBadHex = /^[-+]0x[0-9a-f]+$/i;
+
+/** Used to detect binary string values. */
+var reIsBinary = /^0b[01]+$/i;
+
+/** Used to detect host constructors (Safari). */
+var reIsHostCtor = /^\[object .+?Constructor\]$/;
+
+/** Used to detect octal string values. */
+var reIsOctal = /^0o[0-7]+$/i;
+
+/** Used to detect unsigned integer values. */
+var reIsUint = /^(?:0|[1-9]\d*)$/;
+
+/** Used to compose unicode character classes. */
+var rsAstralRange = '\\ud800-\\udfff',
+    rsComboMarksRange = '\\u0300-\\u036f\\ufe20-\\ufe23',
+    rsComboSymbolsRange = '\\u20d0-\\u20f0',
+    rsVarRange = '\\ufe0e\\ufe0f';
+
+/** Used to compose unicode capture groups. */
+var rsAstral = '[' + rsAstralRange + ']',
+    rsCombo = '[' + rsComboMarksRange + rsComboSymbolsRange + ']',
+    rsFitz = '\\ud83c[\\udffb-\\udfff]',
+    rsModifier = '(?:' + rsCombo + '|' + rsFitz + ')',
+    rsNonAstral = '[^' + rsAstralRange + ']',
+    rsRegional = '(?:\\ud83c[\\udde6-\\uddff]){2}',
+    rsSurrPair = '[\\ud800-\\udbff][\\udc00-\\udfff]',
+    rsZWJ = '\\u200d';
+
+/** Used to compose unicode regexes. */
+var reOptMod = rsModifier + '?',
+    rsOptVar = '[' + rsVarRange + ']?',
+    rsOptJoin = '(?:' + rsZWJ + '(?:' + [rsNonAstral, rsRegional, rsSurrPair].join('|') + ')' + rsOptVar + reOptMod + ')*',
+    rsSeq = rsOptVar + reOptMod + rsOptJoin,
+    rsSymbol = '(?:' + [rsNonAstral + rsCombo + '?', rsCombo, rsRegional, rsSurrPair, rsAstral].join('|') + ')';
+
+/** Used to match [string symbols](https://mathiasbynens.be/notes/javascript-unicode). */
+var reUnicode = RegExp(rsFitz + '(?=' + rsFitz + ')|' + rsSymbol + rsSeq, 'g');
+
+/** Used to detect strings with [zero-width joiners or code points from the astral planes](http://eev.ee/blog/2015/09/12/dark-corners-of-unicode/). */
+var reHasUnicode = RegExp('[' + rsZWJ + rsAstralRange  + rsComboMarksRange + rsComboSymbolsRange + rsVarRange + ']');
+
+/** Built-in method references without a dependency on `root`. */
+var freeParseInt = parseInt;
+
+/** Detect free variable `global` from Node.js. */
+var freeGlobal = typeof global == 'object' && global && global.Object === Object && global;
+
+/** Detect free variable `self`. */
+var freeSelf = typeof self == 'object' && self && self.Object === Object && self;
+
+/** Used as a reference to the global object. */
+var root = freeGlobal || freeSelf || Function('return this')();
+
+/**
+ * A specialized version of `_.map` for arrays without support for iteratee
+ * shorthands.
+ *
+ * @private
+ * @param {Array} [array] The array to iterate over.
+ * @param {Function} iteratee The function invoked per iteration.
+ * @returns {Array} Returns the new mapped array.
+ */
+function arrayMap(array, iteratee) {
+  var index = -1,
+      length = array ? array.length : 0,
+      result = Array(length);
+
+  while (++index < length) {
+    result[index] = iteratee(array[index], index, array);
+  }
+  return result;
+}
+
+/**
+ * Converts an ASCII `string` to an array.
+ *
+ * @private
+ * @param {string} string The string to convert.
+ * @returns {Array} Returns the converted array.
+ */
+function asciiToArray(string) {
+  return string.split('');
+}
+
+/**
+ * The base implementation of `_.times` without support for iteratee shorthands
+ * or max array length checks.
+ *
+ * @private
+ * @param {number} n The number of times to invoke `iteratee`.
+ * @param {Function} iteratee The function invoked per iteration.
+ * @returns {Array} Returns the array of results.
+ */
+function baseTimes(n, iteratee) {
+  var index = -1,
+      result = Array(n);
+
+  while (++index < n) {
+    result[index] = iteratee(index);
+  }
+  return result;
+}
+
+/**
+ * The base implementation of `_.values` and `_.valuesIn` which creates an
+ * array of `object` property values corresponding to the property names
+ * of `props`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @param {Array} props The property names to get values for.
+ * @returns {Object} Returns the array of property values.
+ */
+function baseValues(object, props) {
+  return arrayMap(props, function(key) {
+    return object[key];
+  });
+}
+
+/**
+ * Gets the value at `key` of `object`.
+ *
+ * @private
+ * @param {Object} [object] The object to query.
+ * @param {string} key The key of the property to get.
+ * @returns {*} Returns the property value.
+ */
+function getValue(object, key) {
+  return object == null ? undefined : object[key];
+}
+
+/**
+ * Checks if `string` contains Unicode symbols.
+ *
+ * @private
+ * @param {string} string The string to inspect.
+ * @returns {boolean} Returns `true` if a symbol is found, else `false`.
+ */
+function hasUnicode(string) {
+  return reHasUnicode.test(string);
+}
+
+/**
+ * Checks if `value` is a host object in IE < 9.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a host object, else `false`.
+ */
+function isHostObject(value) {
+  // Many host objects are `Object` objects that can coerce to strings
+  // despite having improperly defined `toString` methods.
+  var result = false;
+  if (value != null && typeof value.toString != 'function') {
+    try {
+      result = !!(value + '');
+    } catch (e) {}
+  }
+  return result;
+}
+
+/**
+ * Converts `iterator` to an array.
+ *
+ * @private
+ * @param {Object} iterator The iterator to convert.
+ * @returns {Array} Returns the converted array.
+ */
+function iteratorToArray(iterator) {
+  var data,
+      result = [];
+
+  while (!(data = iterator.next()).done) {
+    result.push(data.value);
+  }
+  return result;
+}
+
+/**
+ * Converts `map` to its key-value pairs.
+ *
+ * @private
+ * @param {Object} map The map to convert.
+ * @returns {Array} Returns the key-value pairs.
+ */
+function mapToArray(map) {
+  var index = -1,
+      result = Array(map.size);
+
+  map.forEach(function(value, key) {
+    result[++index] = [key, value];
+  });
+  return result;
+}
+
+/**
+ * Creates a unary function that invokes `func` with its argument transformed.
+ *
+ * @private
+ * @param {Function} func The function to wrap.
+ * @param {Function} transform The argument transform.
+ * @returns {Function} Returns the new function.
+ */
+function overArg(func, transform) {
+  return function(arg) {
+    return func(transform(arg));
+  };
+}
+
+/**
+ * Converts `set` to an array of its values.
+ *
+ * @private
+ * @param {Object} set The set to convert.
+ * @returns {Array} Returns the values.
+ */
+function setToArray(set) {
+  var index = -1,
+      result = Array(set.size);
+
+  set.forEach(function(value) {
+    result[++index] = value;
+  });
+  return result;
+}
+
+/**
+ * Converts `string` to an array.
+ *
+ * @private
+ * @param {string} string The string to convert.
+ * @returns {Array} Returns the converted array.
+ */
+function stringToArray(string) {
+  return hasUnicode(string)
+    ? unicodeToArray(string)
+    : asciiToArray(string);
+}
+
+/**
+ * Converts a Unicode `string` to an array.
+ *
+ * @private
+ * @param {string} string The string to convert.
+ * @returns {Array} Returns the converted array.
+ */
+function unicodeToArray(string) {
+  return string.match(reUnicode) || [];
+}
+
+/** Used for built-in method references. */
+var funcProto = Function.prototype,
+    objectProto = Object.prototype;
+
+/** Used to detect overreaching core-js shims. */
+var coreJsData = root['__core-js_shared__'];
+
+/** Used to detect methods masquerading as native. */
+var maskSrcKey = (function() {
+  var uid = /[^.]+$/.exec(coreJsData && coreJsData.keys && coreJsData.keys.IE_PROTO || '');
+  return uid ? ('Symbol(src)_1.' + uid) : '';
+}());
+
+/** Used to resolve the decompiled source of functions. */
+var funcToString = funcProto.toString;
+
+/** Used to check objects for own properties. */
+var hasOwnProperty = objectProto.hasOwnProperty;
+
+/**
+ * Used to resolve the
+ * [`toStringTag`](http://ecma-international.org/ecma-262/7.0/#sec-object.prototype.tostring)
+ * of values.
+ */
+var objectToString = objectProto.toString;
+
+/** Used to detect if a method is native. */
+var reIsNative = RegExp('^' +
+  funcToString.call(hasOwnProperty).replace(reRegExpChar, '\\$&')
+  .replace(/hasOwnProperty|(function).*?(?=\\\()| for .+?(?=\\\])/g, '$1.*?') + '$'
+);
+
+/** Built-in value references. */
+var Symbol = root.Symbol,
+    iteratorSymbol = Symbol ? Symbol.iterator : undefined,
+    propertyIsEnumerable = objectProto.propertyIsEnumerable;
+
+/* Built-in method references for those with the same name as other `lodash` methods. */
+var nativeFloor = Math.floor,
+    nativeKeys = overArg(Object.keys, Object),
+    nativeRandom = Math.random;
+
+/* Built-in method references that are verified to be native. */
+var DataView = getNative(root, 'DataView'),
+    Map = getNative(root, 'Map'),
+    Promise = getNative(root, 'Promise'),
+    Set = getNative(root, 'Set'),
+    WeakMap = getNative(root, 'WeakMap');
+
+/** Used to detect maps, sets, and weakmaps. */
+var dataViewCtorString = toSource(DataView),
+    mapCtorString = toSource(Map),
+    promiseCtorString = toSource(Promise),
+    setCtorString = toSource(Set),
+    weakMapCtorString = toSource(WeakMap);
+
+/**
+ * Creates an array of the enumerable property names of the array-like `value`.
+ *
+ * @private
+ * @param {*} value The value to query.
+ * @param {boolean} inherited Specify returning inherited property names.
+ * @returns {Array} Returns the array of property names.
+ */
+function arrayLikeKeys(value, inherited) {
+  // Safari 8.1 makes `arguments.callee` enumerable in strict mode.
+  // Safari 9 makes `arguments.length` enumerable in strict mode.
+  var result = (isArray(value) || isArguments(value))
+    ? baseTimes(value.length, String)
+    : [];
+
+  var length = result.length,
+      skipIndexes = !!length;
+
+  for (var key in value) {
+    if ((inherited || hasOwnProperty.call(value, key)) &&
+        !(skipIndexes && (key == 'length' || isIndex(key, length)))) {
+      result.push(key);
+    }
+  }
+  return result;
+}
+
+/**
+ * The base implementation of `_.clamp` which doesn't coerce arguments.
+ *
+ * @private
+ * @param {number} number The number to clamp.
+ * @param {number} [lower] The lower bound.
+ * @param {number} upper The upper bound.
+ * @returns {number} Returns the clamped number.
+ */
+function baseClamp(number, lower, upper) {
+  if (number === number) {
+    if (upper !== undefined) {
+      number = number <= upper ? number : upper;
+    }
+    if (lower !== undefined) {
+      number = number >= lower ? number : lower;
+    }
+  }
+  return number;
+}
+
+/**
+ * The base implementation of `getTag`.
+ *
+ * @private
+ * @param {*} value The value to query.
+ * @returns {string} Returns the `toStringTag`.
+ */
+function baseGetTag(value) {
+  return objectToString.call(value);
+}
+
+/**
+ * The base implementation of `_.isNative` without bad shim checks.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a native function,
+ *  else `false`.
+ */
+function baseIsNative(value) {
+  if (!isObject(value) || isMasked(value)) {
+    return false;
+  }
+  var pattern = (isFunction(value) || isHostObject(value)) ? reIsNative : reIsHostCtor;
+  return pattern.test(toSource(value));
+}
+
+/**
+ * The base implementation of `_.keys` which doesn't treat sparse arrays as dense.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property names.
+ */
+function baseKeys(object) {
+  if (!isPrototype(object)) {
+    return nativeKeys(object);
+  }
+  var result = [];
+  for (var key in Object(object)) {
+    if (hasOwnProperty.call(object, key) && key != 'constructor') {
+      result.push(key);
+    }
+  }
+  return result;
+}
+
+/**
+ * The base implementation of `_.random` without support for returning
+ * floating-point numbers.
+ *
+ * @private
+ * @param {number} lower The lower bound.
+ * @param {number} upper The upper bound.
+ * @returns {number} Returns the random number.
+ */
+function baseRandom(lower, upper) {
+  return lower + nativeFloor(nativeRandom() * (upper - lower + 1));
+}
+
+/**
+ * Copies the values of `source` to `array`.
+ *
+ * @private
+ * @param {Array} source The array to copy values from.
+ * @param {Array} [array=[]] The array to copy values to.
+ * @returns {Array} Returns `array`.
+ */
+function copyArray(source, array) {
+  var index = -1,
+      length = source.length;
+
+  array || (array = Array(length));
+  while (++index < length) {
+    array[index] = source[index];
+  }
+  return array;
+}
+
+/**
+ * Gets the native function at `key` of `object`.
+ *
+ * @private
+ * @param {Object} object The object to query.
+ * @param {string} key The key of the method to get.
+ * @returns {*} Returns the function if it's native, else `undefined`.
+ */
+function getNative(object, key) {
+  var value = getValue(object, key);
+  return baseIsNative(value) ? value : undefined;
+}
+
+/**
+ * Gets the `toStringTag` of `value`.
+ *
+ * @private
+ * @param {*} value The value to query.
+ * @returns {string} Returns the `toStringTag`.
+ */
+var getTag = baseGetTag;
+
+// Fallback for data views, maps, sets, and weak maps in IE 11,
+// for data views in Edge < 14, and promises in Node.js.
+if ((DataView && getTag(new DataView(new ArrayBuffer(1))) != dataViewTag) ||
+    (Map && getTag(new Map) != mapTag) ||
+    (Promise && getTag(Promise.resolve()) != promiseTag) ||
+    (Set && getTag(new Set) != setTag) ||
+    (WeakMap && getTag(new WeakMap) != weakMapTag)) {
+  getTag = function(value) {
+    var result = objectToString.call(value),
+        Ctor = result == objectTag ? value.constructor : undefined,
+        ctorString = Ctor ? toSource(Ctor) : undefined;
+
+    if (ctorString) {
+      switch (ctorString) {
+        case dataViewCtorString: return dataViewTag;
+        case mapCtorString: return mapTag;
+        case promiseCtorString: return promiseTag;
+        case setCtorString: return setTag;
+        case weakMapCtorString: return weakMapTag;
+      }
+    }
+    return result;
+  };
+}
+
+/**
+ * Checks if `value` is a valid array-like index.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @param {number} [length=MAX_SAFE_INTEGER] The upper bounds of a valid index.
+ * @returns {boolean} Returns `true` if `value` is a valid index, else `false`.
+ */
+function isIndex(value, length) {
+  length = length == null ? MAX_SAFE_INTEGER : length;
+  return !!length &&
+    (typeof value == 'number' || reIsUint.test(value)) &&
+    (value > -1 && value % 1 == 0 && value < length);
+}
+
+/**
+ * Checks if the given arguments are from an iteratee call.
+ *
+ * @private
+ * @param {*} value The potential iteratee value argument.
+ * @param {*} index The potential iteratee index or key argument.
+ * @param {*} object The potential iteratee object argument.
+ * @returns {boolean} Returns `true` if the arguments are from an iteratee call,
+ *  else `false`.
+ */
+function isIterateeCall(value, index, object) {
+  if (!isObject(object)) {
+    return false;
+  }
+  var type = typeof index;
+  if (type == 'number'
+        ? (isArrayLike(object) && isIndex(index, object.length))
+        : (type == 'string' && index in object)
+      ) {
+    return eq(object[index], value);
+  }
+  return false;
+}
+
+/**
+ * Checks if `func` has its source masked.
+ *
+ * @private
+ * @param {Function} func The function to check.
+ * @returns {boolean} Returns `true` if `func` is masked, else `false`.
+ */
+function isMasked(func) {
+  return !!maskSrcKey && (maskSrcKey in func);
+}
+
+/**
+ * Checks if `value` is likely a prototype object.
+ *
+ * @private
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a prototype, else `false`.
+ */
+function isPrototype(value) {
+  var Ctor = value && value.constructor,
+      proto = (typeof Ctor == 'function' && Ctor.prototype) || objectProto;
+
+  return value === proto;
+}
+
+/**
+ * Converts `func` to its source code.
+ *
+ * @private
+ * @param {Function} func The function to process.
+ * @returns {string} Returns the source code.
+ */
+function toSource(func) {
+  if (func != null) {
+    try {
+      return funcToString.call(func);
+    } catch (e) {}
+    try {
+      return (func + '');
+    } catch (e) {}
+  }
+  return '';
+}
+
+/**
+ * Gets `n` random elements at unique keys from `collection` up to the
+ * size of `collection`.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Collection
+ * @param {Array|Object} collection The collection to sample.
+ * @param {number} [n=1] The number of elements to sample.
+ * @param- {Object} [guard] Enables use as an iteratee for methods like `_.map`.
+ * @returns {Array} Returns the random elements.
+ * @example
+ *
+ * _.sampleSize([1, 2, 3], 2);
+ * // => [3, 1]
+ *
+ * _.sampleSize([1, 2, 3], 4);
+ * // => [2, 3, 1]
+ */
+function sampleSize(collection, n, guard) {
+  var index = -1,
+      result = toArray(collection),
+      length = result.length,
+      lastIndex = length - 1;
+
+  if ((guard ? isIterateeCall(collection, n, guard) : n === undefined)) {
+    n = 1;
+  } else {
+    n = baseClamp(toInteger(n), 0, length);
+  }
+  while (++index < n) {
+    var rand = baseRandom(index, lastIndex),
+        value = result[rand];
+
+    result[rand] = result[index];
+    result[index] = value;
+  }
+  result.length = n;
+  return result;
+}
+
+/**
+ * Creates an array of shuffled values, using a version of the
+ * [Fisher-Yates shuffle](https://en.wikipedia.org/wiki/Fisher-Yates_shuffle).
+ *
+ * @static
+ * @memberOf _
+ * @since 0.1.0
+ * @category Collection
+ * @param {Array|Object} collection The collection to shuffle.
+ * @returns {Array} Returns the new shuffled array.
+ * @example
+ *
+ * _.shuffle([1, 2, 3, 4]);
+ * // => [4, 1, 3, 2]
+ */
+function shuffle(collection) {
+  return sampleSize(collection, MAX_ARRAY_LENGTH);
+}
+
+/**
+ * Performs a
+ * [`SameValueZero`](http://ecma-international.org/ecma-262/7.0/#sec-samevaluezero)
+ * comparison between two values to determine if they are equivalent.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to compare.
+ * @param {*} other The other value to compare.
+ * @returns {boolean} Returns `true` if the values are equivalent, else `false`.
+ * @example
+ *
+ * var object = { 'a': 1 };
+ * var other = { 'a': 1 };
+ *
+ * _.eq(object, object);
+ * // => true
+ *
+ * _.eq(object, other);
+ * // => false
+ *
+ * _.eq('a', 'a');
+ * // => true
+ *
+ * _.eq('a', Object('a'));
+ * // => false
+ *
+ * _.eq(NaN, NaN);
+ * // => true
+ */
+function eq(value, other) {
+  return value === other || (value !== value && other !== other);
+}
+
+/**
+ * Checks if `value` is likely an `arguments` object.
+ *
+ * @static
+ * @memberOf _
+ * @since 0.1.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an `arguments` object,
+ *  else `false`.
+ * @example
+ *
+ * _.isArguments(function() { return arguments; }());
+ * // => true
+ *
+ * _.isArguments([1, 2, 3]);
+ * // => false
+ */
+function isArguments(value) {
+  // Safari 8.1 makes `arguments.callee` enumerable in strict mode.
+  return isArrayLikeObject(value) && hasOwnProperty.call(value, 'callee') &&
+    (!propertyIsEnumerable.call(value, 'callee') || objectToString.call(value) == argsTag);
+}
+
+/**
+ * Checks if `value` is classified as an `Array` object.
+ *
+ * @static
+ * @memberOf _
+ * @since 0.1.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an array, else `false`.
+ * @example
+ *
+ * _.isArray([1, 2, 3]);
+ * // => true
+ *
+ * _.isArray(document.body.children);
+ * // => false
+ *
+ * _.isArray('abc');
+ * // => false
+ *
+ * _.isArray(_.noop);
+ * // => false
+ */
+var isArray = Array.isArray;
+
+/**
+ * Checks if `value` is array-like. A value is considered array-like if it's
+ * not a function and has a `value.length` that's an integer greater than or
+ * equal to `0` and less than or equal to `Number.MAX_SAFE_INTEGER`.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is array-like, else `false`.
+ * @example
+ *
+ * _.isArrayLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isArrayLike(document.body.children);
+ * // => true
+ *
+ * _.isArrayLike('abc');
+ * // => true
+ *
+ * _.isArrayLike(_.noop);
+ * // => false
+ */
+function isArrayLike(value) {
+  return value != null && isLength(value.length) && !isFunction(value);
+}
+
+/**
+ * This method is like `_.isArrayLike` except that it also checks if `value`
+ * is an object.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an array-like object,
+ *  else `false`.
+ * @example
+ *
+ * _.isArrayLikeObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isArrayLikeObject(document.body.children);
+ * // => true
+ *
+ * _.isArrayLikeObject('abc');
+ * // => false
+ *
+ * _.isArrayLikeObject(_.noop);
+ * // => false
+ */
+function isArrayLikeObject(value) {
+  return isObjectLike(value) && isArrayLike(value);
+}
+
+/**
+ * Checks if `value` is classified as a `Function` object.
+ *
+ * @static
+ * @memberOf _
+ * @since 0.1.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a function, else `false`.
+ * @example
+ *
+ * _.isFunction(_);
+ * // => true
+ *
+ * _.isFunction(/abc/);
+ * // => false
+ */
+function isFunction(value) {
+  // The use of `Object#toString` avoids issues with the `typeof` operator
+  // in Safari 8-9 which returns 'object' for typed array and other constructors.
+  var tag = isObject(value) ? objectToString.call(value) : '';
+  return tag == funcTag || tag == genTag;
+}
+
+/**
+ * Checks if `value` is a valid array-like length.
+ *
+ * **Note:** This method is loosely based on
+ * [`ToLength`](http://ecma-international.org/ecma-262/7.0/#sec-tolength).
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a valid length, else `false`.
+ * @example
+ *
+ * _.isLength(3);
+ * // => true
+ *
+ * _.isLength(Number.MIN_VALUE);
+ * // => false
+ *
+ * _.isLength(Infinity);
+ * // => false
+ *
+ * _.isLength('3');
+ * // => false
+ */
+function isLength(value) {
+  return typeof value == 'number' &&
+    value > -1 && value % 1 == 0 && value <= MAX_SAFE_INTEGER;
+}
+
+/**
+ * Checks if `value` is the
+ * [language type](http://www.ecma-international.org/ecma-262/7.0/#sec-ecmascript-language-types)
+ * of `Object`. (e.g. arrays, functions, objects, regexes, `new Number(0)`, and `new String('')`)
+ *
+ * @static
+ * @memberOf _
+ * @since 0.1.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is an object, else `false`.
+ * @example
+ *
+ * _.isObject({});
+ * // => true
+ *
+ * _.isObject([1, 2, 3]);
+ * // => true
+ *
+ * _.isObject(_.noop);
+ * // => true
+ *
+ * _.isObject(null);
+ * // => false
+ */
+function isObject(value) {
+  var type = typeof value;
+  return !!value && (type == 'object' || type == 'function');
+}
+
+/**
+ * Checks if `value` is object-like. A value is object-like if it's not `null`
+ * and has a `typeof` result of "object".
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is object-like, else `false`.
+ * @example
+ *
+ * _.isObjectLike({});
+ * // => true
+ *
+ * _.isObjectLike([1, 2, 3]);
+ * // => true
+ *
+ * _.isObjectLike(_.noop);
+ * // => false
+ *
+ * _.isObjectLike(null);
+ * // => false
+ */
+function isObjectLike(value) {
+  return !!value && typeof value == 'object';
+}
+
+/**
+ * Checks if `value` is classified as a `String` primitive or object.
+ *
+ * @static
+ * @since 0.1.0
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a string, else `false`.
+ * @example
+ *
+ * _.isString('abc');
+ * // => true
+ *
+ * _.isString(1);
+ * // => false
+ */
+function isString(value) {
+  return typeof value == 'string' ||
+    (!isArray(value) && isObjectLike(value) && objectToString.call(value) == stringTag);
+}
+
+/**
+ * Checks if `value` is classified as a `Symbol` primitive or object.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to check.
+ * @returns {boolean} Returns `true` if `value` is a symbol, else `false`.
+ * @example
+ *
+ * _.isSymbol(Symbol.iterator);
+ * // => true
+ *
+ * _.isSymbol('abc');
+ * // => false
+ */
+function isSymbol(value) {
+  return typeof value == 'symbol' ||
+    (isObjectLike(value) && objectToString.call(value) == symbolTag);
+}
+
+/**
+ * Converts `value` to an array.
+ *
+ * @static
+ * @since 0.1.0
+ * @memberOf _
+ * @category Lang
+ * @param {*} value The value to convert.
+ * @returns {Array} Returns the converted array.
+ * @example
+ *
+ * _.toArray({ 'a': 1, 'b': 2 });
+ * // => [1, 2]
+ *
+ * _.toArray('abc');
+ * // => ['a', 'b', 'c']
+ *
+ * _.toArray(1);
+ * // => []
+ *
+ * _.toArray(null);
+ * // => []
+ */
+function toArray(value) {
+  if (!value) {
+    return [];
+  }
+  if (isArrayLike(value)) {
+    return isString(value) ? stringToArray(value) : copyArray(value);
+  }
+  if (iteratorSymbol && value[iteratorSymbol]) {
+    return iteratorToArray(value[iteratorSymbol]());
+  }
+  var tag = getTag(value),
+      func = tag == mapTag ? mapToArray : (tag == setTag ? setToArray : values);
+
+  return func(value);
+}
+
+/**
+ * Converts `value` to a finite number.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.12.0
+ * @category Lang
+ * @param {*} value The value to convert.
+ * @returns {number} Returns the converted number.
+ * @example
+ *
+ * _.toFinite(3.2);
+ * // => 3.2
+ *
+ * _.toFinite(Number.MIN_VALUE);
+ * // => 5e-324
+ *
+ * _.toFinite(Infinity);
+ * // => 1.7976931348623157e+308
+ *
+ * _.toFinite('3.2');
+ * // => 3.2
+ */
+function toFinite(value) {
+  if (!value) {
+    return value === 0 ? value : 0;
+  }
+  value = toNumber(value);
+  if (value === INFINITY || value === -INFINITY) {
+    var sign = (value < 0 ? -1 : 1);
+    return sign * MAX_INTEGER;
+  }
+  return value === value ? value : 0;
+}
+
+/**
+ * Converts `value` to an integer.
+ *
+ * **Note:** This method is loosely based on
+ * [`ToInteger`](http://www.ecma-international.org/ecma-262/7.0/#sec-tointeger).
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to convert.
+ * @returns {number} Returns the converted integer.
+ * @example
+ *
+ * _.toInteger(3.2);
+ * // => 3
+ *
+ * _.toInteger(Number.MIN_VALUE);
+ * // => 0
+ *
+ * _.toInteger(Infinity);
+ * // => 1.7976931348623157e+308
+ *
+ * _.toInteger('3.2');
+ * // => 3
+ */
+function toInteger(value) {
+  var result = toFinite(value),
+      remainder = result % 1;
+
+  return result === result ? (remainder ? result - remainder : result) : 0;
+}
+
+/**
+ * Converts `value` to a number.
+ *
+ * @static
+ * @memberOf _
+ * @since 4.0.0
+ * @category Lang
+ * @param {*} value The value to process.
+ * @returns {number} Returns the number.
+ * @example
+ *
+ * _.toNumber(3.2);
+ * // => 3.2
+ *
+ * _.toNumber(Number.MIN_VALUE);
+ * // => 5e-324
+ *
+ * _.toNumber(Infinity);
+ * // => Infinity
+ *
+ * _.toNumber('3.2');
+ * // => 3.2
+ */
+function toNumber(value) {
+  if (typeof value == 'number') {
+    return value;
+  }
+  if (isSymbol(value)) {
+    return NAN;
+  }
+  if (isObject(value)) {
+    var other = typeof value.valueOf == 'function' ? value.valueOf() : value;
+    value = isObject(other) ? (other + '') : other;
+  }
+  if (typeof value != 'string') {
+    return value === 0 ? value : +value;
+  }
+  value = value.replace(reTrim, '');
+  var isBinary = reIsBinary.test(value);
+  return (isBinary || reIsOctal.test(value))
+    ? freeParseInt(value.slice(2), isBinary ? 2 : 8)
+    : (reIsBadHex.test(value) ? NAN : +value);
+}
+
+/**
+ * Creates an array of the own enumerable property names of `object`.
+ *
+ * **Note:** Non-object values are coerced to objects. See the
+ * [ES spec](http://ecma-international.org/ecma-262/7.0/#sec-object.keys)
+ * for more details.
+ *
+ * @static
+ * @since 0.1.0
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property names.
+ * @example
+ *
+ * function Foo() {
+ *   this.a = 1;
+ *   this.b = 2;
+ * }
+ *
+ * Foo.prototype.c = 3;
+ *
+ * _.keys(new Foo);
+ * // => ['a', 'b'] (iteration order is not guaranteed)
+ *
+ * _.keys('hi');
+ * // => ['0', '1']
+ */
+function keys(object) {
+  return isArrayLike(object) ? arrayLikeKeys(object) : baseKeys(object);
+}
+
+/**
+ * Creates an array of the own enumerable string keyed property values of `object`.
+ *
+ * **Note:** Non-object values are coerced to objects.
+ *
+ * @static
+ * @since 0.1.0
+ * @memberOf _
+ * @category Object
+ * @param {Object} object The object to query.
+ * @returns {Array} Returns the array of property values.
+ * @example
+ *
+ * function Foo() {
+ *   this.a = 1;
+ *   this.b = 2;
+ * }
+ *
+ * Foo.prototype.c = 3;
+ *
+ * _.values(new Foo);
+ * // => [1, 2] (iteration order is not guaranteed)
+ *
+ * _.values('hi');
+ * // => ['h', 'i']
+ */
+function values(object) {
+  return object ? baseValues(object, keys(object)) : [];
+}
+
+module.exports = shuffle;
+
+/* WEBPACK VAR INJECTION */}.call(this, __webpack_require__(/*! ./../webpack/buildin/global.js */ "./node_modules/webpack/buildin/global.js")))
+
+/***/ }),
+
 /***/ "./node_modules/object-assign/index.js":
 /*!*********************************************!*\
   !*** ./node_modules/object-assign/index.js ***!
@@ -4616,6 +5925,82 @@ if (true) {
 var ReactPropTypesSecret = 'SECRET_DO_NOT_PASS_THIS_OR_YOU_WILL_BE_FIRED';
 
 module.exports = ReactPropTypesSecret;
+
+
+/***/ }),
+
+/***/ "./node_modules/random-emoji/index.js":
+/*!********************************************!*\
+  !*** ./node_modules/random-emoji/index.js ***!
+  \********************************************/
+/*! no static exports found */
+/***/ (function(module, exports, __webpack_require__) {
+
+var emojis = __webpack_require__(/*! emoji-named-characters */ "./node_modules/emoji-named-characters/index.js")
+var shuffle = __webpack_require__(/*! lodash.shuffle */ "./node_modules/lodash.shuffle/index.js")
+var emojiNames = Object.keys(emojis)
+
+function imgSrc (host, name) {
+  if (!host) {
+    host = '/'
+  } else {
+    host = host.slice(-1) === '/' ? host : host + '/'
+  }
+  return host + encodeURIComponent(name) + '.png'
+}
+
+function emojiImage (host, name, height) {
+  return '<img class="emoji" title="' + name + '" alt="' + name + '" src="' + imgSrc(host, name) + '"' + ' height="' + (height || 64) + '"' + ' />'
+}
+
+function mapEmoji (options) {
+  return function (emoji) {
+    return {
+      character: emojis[emoji].character,
+      name: emoji,
+      image: emojiImage(options.host, emoji, options.height),
+      imageSrc: imgSrc(options.host, emoji)
+    }
+  }
+}
+
+exports.random = function (options) {
+  if (!options) {
+    options = {}
+  }
+  return shuffle(emojiNames.slice(0)).slice(0, options.count || 3).map(mapEmoji(options))
+}
+
+function fetchSyllables (count, randomEmoji) {
+  var result = []
+  var current = 0
+  var currentEmoji
+  var emojiCount
+
+  while (current < count) {
+    currentEmoji = randomEmoji.pop()
+    emojiCount = emojis[currentEmoji].syllables
+
+    if (emojiCount === 0 || (current + emojiCount) > count) {
+      continue
+    }
+
+    result.push(currentEmoji)
+    current += emojiCount
+  }
+
+  return result
+}
+
+exports.haiku = function (options) {
+  var asEmoji = mapEmoji(options || {})
+  var randomEmoji = shuffle(emojiNames.slice(0))
+  return [
+    fetchSyllables(5, randomEmoji).map(asEmoji),
+    fetchSyllables(7, randomEmoji).map(asEmoji),
+    fetchSyllables(5, randomEmoji).map(asEmoji)
+  ]
+}
 
 
 /***/ }),
@@ -25702,6 +27087,37 @@ if (true) {
 }
 
 module.exports = warning;
+
+
+/***/ }),
+
+/***/ "./node_modules/webpack/buildin/global.js":
+/*!***********************************!*\
+  !*** (webpack)/buildin/global.js ***!
+  \***********************************/
+/*! no static exports found */
+/***/ (function(module, exports) {
+
+var g;
+
+// This works in non-strict mode
+g = (function() {
+	return this;
+})();
+
+try {
+	// This works if eval is allowed (see CSP)
+	g = g || Function("return this")() || (1, eval)("this");
+} catch (e) {
+	// This works if the window reference is available
+	if (typeof window === "object") g = window;
+}
+
+// g can still be undefined, but nothing to do about it...
+// We return undefined, instead of nothing here, so it's
+// easier to handle this case. if(!global) { ...}
+
+module.exports = g;
 
 
 /***/ })

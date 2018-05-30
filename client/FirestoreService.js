@@ -28,6 +28,9 @@ class FirestoreService {
       .get()
       .then(el => (el.docs[0] ? el.docs[0].data() : null));
   }
+  static onBlogsChange(db) {
+    return db.collection('blogs').orderBy('timeStamp', 'desc');
+  }
 }
 
 export default FirestoreService;

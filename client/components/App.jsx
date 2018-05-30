@@ -43,7 +43,7 @@ class App extends Component {
           {this.state.user === null ? <Redirect to={{ pathname: '/login' }} /> : null}
           <Route exact path="/" render={() => <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} />} />
           <Route path="/login" render={() => <Login user={this.state.user} onLogin={u => this.auth(u)} />} />
-          <Route exact path="/user/:email" render={data => <Profile email={data.match.params.email} db={this.state.db} />} />
+          <Route exact path="/user/:email" render={data => <Profile goBack={data.history.goBack} email={data.match.params.email} db={this.state.db} />} />
         </div>
       </Router>
     );
