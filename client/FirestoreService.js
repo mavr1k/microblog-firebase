@@ -1,6 +1,9 @@
 class FirestoreService {
   static getBlogs(db) {
-    return db.collection('blogs').orderBy('timeStamp', 'desc').get().then(array => array.docs.map(el => el.data()));
+    return db.collection('blogs')
+      .orderBy('timeStamp', 'desc')
+      .get()
+      .then(array => array.docs.map(el => el.data()));
   }
   static onBlogsChange(db) {
     return db.collection('blogs').orderBy('timeStamp', 'desc');
@@ -13,12 +16,16 @@ class FirestoreService {
   static getUsers(db) {
     return db.collection('users').get().then(array => array.docs.map(el => el.data()));
   }
-  static postMessage(db, message, email) {
-    return db.collection('blogs').add({
+  static postMessage(db, message, reply, email) {
+    const obj = {
       timeStamp: new Date(),
       body: message,
       author: email
-    });
+    };
+    if (reply) {
+      obj.replyTo = db.collection('blogs').doc(reply);
+    }
+    return db.collection('blogs').add(obj);
   }
   static addUser(db, user) {
     return db.collection('users').add(user);
@@ -31,6 +38,11 @@ class FirestoreService {
   }
   static deleteMessage(db, id) {
     return db.collection('blogs').doc(id).delete();
+  }
+  static onReplyChange(db, postId) {
+    return db.collection('blogs')
+      .where('replyTo', '==', db.collection('blogs').doc(postId))
+      .orderBy('timeStamp', 'desc');
   }
 }
 

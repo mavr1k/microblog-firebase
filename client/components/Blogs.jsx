@@ -20,8 +20,10 @@ class Blogs extends Component {
       this.getAll();
       this.unsubscribe = FirestoreService
         .onBlogsChange(this.props.db)
-        .onSnapshot(snap =>
-          this.setState({ blogs: snap.docs.map(el => ({ ...el.data(), id: el.id })) }));
+        .onSnapshot((snap) => {
+          const blogs = snap.docs.map(el => ({ ...el.data(), id: el.id }));
+          this.setState({ blogs });
+        });
     }
   }
 
@@ -29,6 +31,10 @@ class Blogs extends Component {
     if (this.unsubscribe) {
       this.unsubscribe();
     }
+  }
+
+  onReply(postId) {
+    this.setState({ message: `@${postId}` });
   }
 
   getAll() {
@@ -47,9 +53,22 @@ class Blogs extends Component {
 
   post() {
     if (this.isMessageValid()) {
-      FirestoreService.postMessage(this.props.db, this.state.message, this.props.user.email);
+      FirestoreService.postMessage(
+        this.props.db,
+        this.state.message,
+        this.findReply(),
+        this.props.user.email
+      );
       this.setState({ message: '' });
     }
+  }
+
+  findReply() {
+    const res = this.state.message.match(/@(.{20})/);
+    if (res) {
+      return res[1];
+    }
+    return res;
   }
 
   isMessageValid() {
@@ -72,6 +91,7 @@ class Blogs extends Component {
           </div>
         </div>
         <Feed
+          onReply={p => this.onReply(p)}
           currentUser={this.props.user}
           db={this.props.db}
           users={this.state.users}

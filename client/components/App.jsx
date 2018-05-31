@@ -56,7 +56,19 @@ class App extends Component {
         <div className="container">
           <Route exact path="/" render={() => <Blogs db={this.state.db} onLogout={() => this.logout()} user={this.state.user} />} />
           <Route path="/login" render={() => <Login user={this.state.user} onLogin={u => this.auth(u)} />} />
-          <Route exact path="/user/:email" render={data => <Profile data={data} currentUser={this.state.user} goBack={data.history.goBack} email={data.match.params.email} db={this.state.db} />} />
+          <Route
+            exact
+            path="/user/:email"
+            render={data => (
+              <Profile
+                data={data}
+                currentUser={this.state.user}
+                goBack={data.history.goBack}
+                email={data.match.params.email}
+                db={this.state.db}
+              />
+          )}
+          />
           {/* <Route exact path="/message/:id" render={data => <Message />} */}
         </div>
       </Router>

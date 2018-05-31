@@ -124,12 +124,16 @@ var FirestoreService = function () {
     }
   }, {
     key: 'postMessage',
-    value: function postMessage(db, message, email) {
-      return db.collection('blogs').add({
+    value: function postMessage(db, message, reply, email) {
+      var obj = {
         timeStamp: new Date(),
         body: message,
         author: email
-      });
+      };
+      if (reply) {
+        obj.replyTo = db.collection('blogs').doc(reply);
+      }
+      return db.collection('blogs').add(obj);
     }
   }, {
     key: 'addUser',
@@ -147,6 +151,11 @@ var FirestoreService = function () {
     key: 'deleteMessage',
     value: function deleteMessage(db, id) {
       return db.collection('blogs').doc(id).delete();
+    }
+  }, {
+    key: 'onReplyChange',
+    value: function onReplyChange(db, postId) {
+      return db.collection('blogs').where('replyTo', '==', db.collection('blogs').doc(postId)).orderBy('timeStamp', 'desc');
     }
   }]);
 
@@ -280,9 +289,19 @@ var App = function (_Component) {
                   return _this3.auth(u);
                 } });
             } }),
-          _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/user/:email', render: function render(data) {
-              return _react2.default.createElement(_Profile2.default, { data: data, currentUser: _this3.state.user, goBack: data.history.goBack, email: data.match.params.email, db: _this3.state.db });
-            } })
+          _react2.default.createElement(_reactRouterDom.Route, {
+            exact: true,
+            path: '/user/:email',
+            render: function render(data) {
+              return _react2.default.createElement(_Profile2.default, {
+                data: data,
+                currentUser: _this3.state.user,
+                goBack: data.history.goBack,
+                email: data.match.params.email,
+                db: _this3.state.db
+              });
+            }
+          })
         )
       );
     }
@@ -364,9 +383,10 @@ var Blogs = function (_Component) {
       if (this.props.user !== null) {
         this.getAll();
         this.unsubscribe = _FirestoreService2.default.onBlogsChange(this.props.db).onSnapshot(function (snap) {
-          return _this2.setState({ blogs: snap.docs.map(function (el) {
-              return _extends({}, el.data(), { id: el.id });
-            }) });
+          var blogs = snap.docs.map(function (el) {
+            return _extends({}, el.data(), { id: el.id });
+          });
+          _this2.setState({ blogs: blogs });
         });
       }
     }
@@ -376,6 +396,11 @@ var Blogs = function (_Component) {
       if (this.unsubscribe) {
         this.unsubscribe();
       }
+    }
+  }, {
+    key: 'onReply',
+    value: function onReply(postId) {
+      this.setState({ message: '@' + postId });
     }
   }, {
     key: 'getAll',
@@ -404,9 +429,18 @@ var Blogs = function (_Component) {
     key: 'post',
     value: function post() {
       if (this.isMessageValid()) {
-        _FirestoreService2.default.postMessage(this.props.db, this.state.message, this.props.user.email);
+        _FirestoreService2.default.postMessage(this.props.db, this.state.message, this.findReply(), this.props.user.email);
         this.setState({ message: '' });
       }
+    }
+  }, {
+    key: 'findReply',
+    value: function findReply() {
+      var res = this.state.message.match(/@(.{20})/);
+      if (res) {
+        return res[1];
+      }
+      return res;
     }
   }, {
     key: 'isMessageValid',
@@ -467,6 +501,9 @@ var Blogs = function (_Component) {
           )
         ),
         _react2.default.createElement(_Feed2.default, {
+          onReply: function onReply(p) {
+            return _this4.onReply(p);
+          },
           currentUser: this.props.user,
           db: this.props.db,
           users: this.state.users,
@@ -513,22 +550,27 @@ var Feed = function Feed(_ref) {
   var users = _ref.users,
       blogs = _ref.blogs,
       db = _ref.db,
-      currentUser = _ref.currentUser;
+      currentUser = _ref.currentUser,
+      _onReply = _ref.onReply;
 
   if (currentUser === null) {
     return _react2.default.createElement(_reactRouterDom.Redirect, { to: '/login' });
   } else if (blogs === null || users === null) {
     return _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' });
   } else if (blogs.length > 0) {
-    return blogs.map(function (blog, i) {
+    return blogs.map(function (blog) {
       return _react2.default.createElement(_Post2.default, {
+        users: users,
+        onReply: function onReply(p) {
+          return _onReply ? _onReply(p) : null;
+        },
         currentUser: currentUser,
         db: db,
         author: users.find(function (user) {
           return user.email === blog.author;
         }),
         post: blog,
-        key: i
+        key: blog.id
       });
     });
   }
@@ -612,6 +654,10 @@ Object.defineProperty(exports, "__esModule", {
   value: true
 });
 
+var _extends = Object.assign || function (target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i]; for (var key in source) { if (Object.prototype.hasOwnProperty.call(source, key)) { target[key] = source[key]; } } } return target; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
 var _react = __webpack_require__(/*! react */ "./node_modules/react/index.js");
 
 var _react2 = _interopRequireDefault(_react);
@@ -624,60 +670,144 @@ var _FirestoreService2 = _interopRequireDefault(_FirestoreService);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var deletePost = function deletePost(db, id) {
-  if (window.confirm('Are you sure?')) {
-    _FirestoreService2.default.deleteMessage(db, id);
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+/* global window */
+
+
+var Post = function (_Component) {
+  _inherits(Post, _Component);
+
+  function Post(props) {
+    _classCallCheck(this, Post);
+
+    var _this = _possibleConstructorReturn(this, (Post.__proto__ || Object.getPrototypeOf(Post)).call(this, props));
+
+    _this.state = {
+      replies: [],
+      areRepliesShown: false
+    };
+    return _this;
   }
-}; /* global window */
 
+  _createClass(Post, [{
+    key: 'componentDidMount',
+    value: function componentDidMount() {
+      this.getReplies();
+    }
+  }, {
+    key: 'componentWillUnmount',
+    value: function componentWillUnmount() {
+      if (this.unsubscribe) {
+        this.unsubscribe();
+      }
+    }
+  }, {
+    key: 'getReplies',
+    value: function getReplies() {
+      var _this2 = this;
 
-var Post = function Post(props) {
-  return _react2.default.createElement(
-    'div',
-    { className: 'post row' },
-    _react2.default.createElement(
-      'div',
-      { className: 'author col-md-3' },
-      window.location.pathname.includes('user') ? _react2.default.createElement(
-        'span',
-        null,
-        _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
-        props.author.displayName
-      ) : _react2.default.createElement(
-        _reactRouterDom.Link,
-        { href: '/', to: '/user/' + encodeURIComponent(props.author.email) },
-        _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
-        props.author.displayName
-      )
-    ),
-    _react2.default.createElement(
-      'div',
-      { className: 'text col-md-9' },
-      _react2.default.createElement(
-        'p',
-        { className: 'body' },
-        props.post.body
-      ),
-      _react2.default.createElement(
-        'p',
-        { className: 'date' },
-        props.post.timeStamp.toDate().toLocaleString()
-      ),
-      props.post.author === props.currentUser.email || props.currentUser.isAdmin ? _react2.default.createElement(
-        'button',
-        { onClick: function onClick() {
-            return deletePost(props.db, props.post.id);
-          }, className: 'btn btn-link delete-post' },
-        _react2.default.createElement('i', { className: 'fas fa-eraser' })
-      ) : null,
-      _react2.default.createElement(
-        'button',
-        { className: 'btn btn-link post-id' },
-        props.post.id
-      )
-    )
-  );
-};
+      this.unsubscribe = _FirestoreService2.default.onReplyChange(this.props.db, this.props.post.id).onSnapshot(function (array) {
+        var replies = array.docs.map(function (el) {
+          return _extends({}, el.data(), { id: el.id });
+        });
+        _this2.setState({ replies: replies });
+      });
+    }
+  }, {
+    key: 'deletePost',
+    value: function deletePost(id) {
+      if (window.confirm('Are you sure?')) {
+        _FirestoreService2.default.deleteMessage(this.props.db, id);
+      }
+    }
+  }, {
+    key: 'render',
+    value: function render() {
+      var _this3 = this;
+
+      return _react2.default.createElement(
+        'div',
+        { className: 'post row' },
+        _react2.default.createElement(
+          'div',
+          { className: 'author col-md-3' },
+          window.location.pathname.includes('user') ? _react2.default.createElement(
+            'span',
+            null,
+            _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (this.props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
+            this.props.author.displayName
+          ) : _react2.default.createElement(
+            _reactRouterDom.Link,
+            { href: '/', to: '/user/' + encodeURIComponent(this.props.author.email) },
+            _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + (this.props.author.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png') + '\')' } }),
+            this.props.author.displayName
+          )
+        ),
+        _react2.default.createElement(
+          'div',
+          { className: 'text col-md-9' },
+          _react2.default.createElement(
+            'p',
+            { className: 'body' },
+            this.props.post.body
+          ),
+          _react2.default.createElement(
+            'p',
+            { className: 'date' },
+            this.props.post.timeStamp.toDate().toLocaleString()
+          ),
+          this.props.post.author === this.props.currentUser.email || this.props.currentUser.isAdmin ? _react2.default.createElement(
+            'button',
+            { onClick: function onClick() {
+                return _this3.deletePost(_this3.props.post.id);
+              }, className: 'btn btn-link delete-post' },
+            _react2.default.createElement('i', { className: 'fas fa-eraser' })
+          ) : null,
+          _react2.default.createElement(
+            'button',
+            { onClick: function onClick() {
+                return _this3.props.onReply(_this3.props.post.id);
+              }, className: 'btn btn-link post-id' },
+            this.props.post.id
+          ),
+          this.props.isReply || !(this.state.replies && this.state.replies.length) ? null : _react2.default.createElement(
+            'button',
+            { onClick: function onClick() {
+                return _this3.setState({ areRepliesShown: !_this3.state.areRepliesShown });
+              }, className: 'btn btn-link' },
+            !this.state.areRepliesShown ? this.state.replies.length + ' ' + (this.state.replies.length > 1 ? 'replies' : 'reply') : 'Hide'
+          )
+        ),
+        _react2.default.createElement(
+          'div',
+          { className: 'replies container' },
+          !(this.state.areRepliesShown && this.state.replies) ? null : this.state.replies.map(function (el) {
+            return _react2.default.createElement(Post, {
+              isReply: true,
+              onReply: function onReply() {
+                return _this3.props.onReply(el.id);
+              },
+              users: _this3.props.users,
+              currentUser: _this3.props.currentUser,
+              author: _this3.props.users.find(function (user) {
+                return user.email === el.author;
+              }),
+              post: el,
+              db: _this3.props.db,
+              key: el.id
+            });
+          })
+        )
+      );
+    }
+  }]);
+
+  return Post;
+}(_react.Component);
 
 exports.default = Post;
 

@@ -23,11 +23,9 @@ class Profile extends Component {
           });
       });
   }
-
   componentWillUnmount() {
     this.unsubscribe();
   }
-
   render() {
     const { blogs, user, emoji } = this.state;
     return (
