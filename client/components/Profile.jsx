@@ -39,7 +39,9 @@ class Profile extends Component {
             <div className="profile">
               <div className="photo" style={{ backgroundImage: `url('${user.photoURL || 'https://png.icons8.com/ios/50/000000/login-as-user-filled.png'}')` }} />
               <p className="name">{user.displayName}</p>
-              <p className="email"><a href={`mailto:${user.email}`}>{user.email}</a></p>
+              <p className="email">
+                <a href={`mailto:${user.email}`}>{user.email}</a>
+              </p>
               <p className="posts-count">Posts count: <b>{blogs.length}</b></p>
             </div>
             <h2>{emoji.character}Posts{emoji.character}</h2>

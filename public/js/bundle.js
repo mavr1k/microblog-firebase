@@ -157,6 +157,25 @@ var FirestoreService = function () {
     value: function onReplyChange(db, postId) {
       return db.collection('blogs').where('replyTo', '==', db.collection('blogs').doc(postId)).orderBy('timeStamp', 'desc');
     }
+  }, {
+    key: 'likePost',
+    value: function likePost(db, currentEmail, id) {
+      return db.collection('blogs').doc(id).get().then(function (post) {
+        var data = post.data();
+        if (!Array.isArray(data.likes)) {
+          data.likes = [];
+        }
+        var likeIndex = data.likes.findIndex(function (el) {
+          return el === currentEmail;
+        });
+        if (likeIndex > -1) {
+          data.likes.splice(likeIndex, 1);
+        } else {
+          data.likes.push(currentEmail);
+        }
+        return post.ref.set(data);
+      });
+    }
   }]);
 
   return FirestoreService;
@@ -726,6 +745,18 @@ var Post = function (_Component) {
       });
     }
   }, {
+    key: 'getLikeIcon',
+    value: function getLikeIcon() {
+      var _this3 = this;
+
+      if (this.props.post.likes && Array.isArray(this.props.post.likes) && this.props.post.likes.some(function (like) {
+        return like === _this3.props.currentUser.email;
+      })) {
+        return _react2.default.createElement('i', { className: 'fas fa-heart' });
+      }
+      return _react2.default.createElement('i', { className: 'far fa-heart' });
+    }
+  }, {
     key: 'deletePost',
     value: function deletePost(id) {
       if (window.confirm('Are you sure?')) {
@@ -733,9 +764,48 @@ var Post = function (_Component) {
       }
     }
   }, {
+    key: 'getUsersLikes',
+    value: function getUsersLikes() {
+      var _this4 = this;
+
+      if (this.calculateLikes()) {
+        return this.props.post.likes.map(function (like) {
+          var user = _this4.props.users.find(function (user) {
+            return user.email === like;
+          });
+          return _react2.default.createElement(
+            'li',
+            { key: user.email },
+            _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + user.photoURL + '\')' } }),
+            _react2.default.createElement(
+              'span',
+              null,
+              user.displayName
+            )
+          );
+        });
+      }
+      return null;
+    }
+  }, {
+    key: 'like',
+    value: function like() {
+      _FirestoreService2.default.likePost(this.props.db, this.props.currentUser.email, this.props.post.id);
+    }
+  }, {
+    key: 'calculateLikes',
+    value: function calculateLikes() {
+      var likes = this.props.post.likes;
+
+      if (Array.isArray(likes)) {
+        return likes.length > 0 ? likes.length : null;
+      }
+      return null;
+    }
+  }, {
     key: 'render',
     value: function render() {
-      var _this3 = this;
+      var _this5 = this;
 
       return _react2.default.createElement(
         'div',
@@ -771,23 +841,41 @@ var Post = function (_Component) {
           this.props.post.author === this.props.currentUser.email || this.props.currentUser.isAdmin ? _react2.default.createElement(
             'button',
             { onClick: function onClick() {
-                return _this3.deletePost(_this3.props.post.id);
+                return _this5.deletePost(_this5.props.post.id);
               }, className: 'btn btn-link delete-post' },
             _react2.default.createElement('i', { className: 'fas fa-eraser' })
           ) : null,
           _react2.default.createElement(
             'button',
             { onClick: function onClick() {
-                return _this3.props.onReply(_this3.props.post.id);
-              }, className: 'btn btn-link post-id' },
-            this.props.post.id
+                return _this5.props.onReply(_this5.props.post.id);
+              }, className: 'btn btn-link reply-to-post' },
+            'Reply to this'
           ),
-          this.props.isReply || !(this.state.replies && this.state.replies.length) ? null : _react2.default.createElement(
-            'button',
-            { onClick: function onClick() {
-                return _this3.setState({ areRepliesShown: !_this3.state.areRepliesShown });
-              }, className: 'btn btn-link show-replies-btn' },
-            !this.state.areRepliesShown ? this.state.replies.length + ' ' + (this.state.replies.length > 1 ? 'replies' : 'reply') : 'Hide'
+          _react2.default.createElement(
+            'div',
+            null,
+            _react2.default.createElement(
+              'button',
+              { onClick: function onClick() {
+                  return _this5.like();
+                }, className: 'btn btn-link like' },
+              this.calculateLikes(),
+              ' ',
+              this.getLikeIcon()
+            ),
+            this.calculateLikes() ? _react2.default.createElement(
+              'ul',
+              { className: 'users-likes' },
+              this.getUsersLikes()
+            ) : null,
+            this.props.isReply || !(this.state.replies && this.state.replies.length) ? null : _react2.default.createElement(
+              'button',
+              { onClick: function onClick() {
+                  return _this5.setState({ areRepliesShown: !_this5.state.areRepliesShown });
+                }, className: 'btn btn-link show-replies-btn' },
+              !this.state.areRepliesShown ? this.state.replies.length + ' ' + (this.state.replies.length > 1 ? 'replies' : 'reply') : 'Hide'
+            )
           )
         ),
         _react2.default.createElement(
@@ -796,15 +884,16 @@ var Post = function (_Component) {
           !(this.state.areRepliesShown && this.state.replies) ? null : this.state.replies.map(function (el) {
             return _react2.default.createElement(Post, {
               isReply: true,
+              users: _this5.props.users,
               onReply: function onReply() {
-                return _this3.props.onReply(el.id);
+                return _this5.props.onReply(el.id);
               },
-              currentUser: _this3.props.currentUser,
-              author: _this3.props.users.find(function (user) {
+              currentUser: _this5.props.currentUser,
+              author: _this5.props.users.find(function (user) {
                 return user.email === el.author;
               }),
               post: el,
-              db: _this3.props.db,
+              db: _this5.props.db,
               key: el.id
             });
           })

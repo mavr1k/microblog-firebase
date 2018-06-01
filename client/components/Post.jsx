@@ -27,10 +27,42 @@ class Post extends Component {
         this.setState({ replies });
       });
   }
+  getLikeIcon() {
+    if (this.props.post.likes &&
+      Array.isArray(this.props.post.likes) &&
+      this.props.post.likes.some(like => like === this.props.currentUser.email)) {
+      return <i className="fas fa-heart" />;
+    }
+    return <i className="far fa-heart" />;
+  }
   deletePost(id) {
     if (window.confirm('Are you sure?')) {
       FirestoreService.deleteMessage(this.props.db, id);
     }
+  }
+  getUsersLikes() {
+    if (this.calculateLikes()) {
+      return this.props.post.likes.map((like) => {
+        const user = this.props.users.find(user => user.email === like);
+        return (
+          <li key={user.email}>
+            <div className="photo" style={{ backgroundImage: `url('${user.photoURL}')` }} />
+            <span>{user.displayName}</span>
+          </li>
+        );
+      });
+    }
+    return null;
+  }
+  like() {
+    FirestoreService.likePost(this.props.db, this.props.currentUser.email, this.props.post.id);
+  }
+  calculateLikes() {
+    const { likes } = this.props.post;
+    if (Array.isArray(likes)) {
+      return likes.length > 0 ? likes.length : null;
+    }
+    return null;
   }
   render() {
     return (
@@ -56,17 +88,26 @@ class Post extends Component {
               <button onClick={() => this.deletePost(this.props.post.id)} className="btn btn-link delete-post">
                 <i className="fas fa-eraser" />
               </button> : null}
-          <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link post-id">{this.props.post.id}</button>
-          {this.props.isReply || !(this.state.replies && this.state.replies.length) ? null :
-          <button onClick={() => this.setState({ areRepliesShown: !this.state.areRepliesShown })} className="btn btn-link show-replies-btn">{!this.state.areRepliesShown ?
-              `${this.state.replies.length} ${this.state.replies.length > 1 ? 'replies' : 'reply'}` : 'Hide'}
-          </button>}
+          <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post">Reply to this</button>
+          <div>
+            <button onClick={() => this.like()} className="btn btn-link like">{this.calculateLikes()} {this.getLikeIcon()}</button>
+            {this.calculateLikes() ? (
+              <ul className="users-likes">
+                {this.getUsersLikes()}
+              </ul>
+            ) : null}
+            {this.props.isReply || !(this.state.replies && this.state.replies.length) ? null :
+            <button onClick={() => this.setState({ areRepliesShown: !this.state.areRepliesShown })} className="btn btn-link show-replies-btn">{!this.state.areRepliesShown ?
+                `${this.state.replies.length} ${this.state.replies.length > 1 ? 'replies' : 'reply'}` : 'Hide'}
+            </button>}
+          </div>
         </div>
         <div className="replies container" >
           {!(this.state.areRepliesShown && this.state.replies) ? null :
             this.state.replies.map(el => (
               <Post
                 isReply
+                users={this.props.users}
                 onReply={() => this.props.onReply(el.id)}
                 currentUser={this.props.currentUser}
                 author={this.props.users.find(user => user.email === el.author)}

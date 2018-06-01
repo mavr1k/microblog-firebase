@@ -44,6 +44,24 @@ class FirestoreService {
       .where('replyTo', '==', db.collection('blogs').doc(postId))
       .orderBy('timeStamp', 'desc');
   }
+  static likePost(db, currentEmail, id) {
+    return db.collection('blogs')
+      .doc(id)
+      .get()
+      .then((post) => {
+        const data = post.data();
+        if (!Array.isArray(data.likes)) {
+          data.likes = [];
+        }
+        const likeIndex = data.likes.findIndex(el => el === currentEmail);
+        if (likeIndex > -1) {
+          data.likes.splice(likeIndex, 1);
+        } else {
+          data.likes.push(currentEmail);
+        }
+        return post.ref.set(data);
+      });
+  }
 }
 
 export default FirestoreService;

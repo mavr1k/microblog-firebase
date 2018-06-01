@@ -24,6 +24,13 @@ h6 {
   text-align: center;
 }
 
+.btn-link,
+.btn-link:hover,
+.btn-link:active,
+.btn-link:focus {
+  text-decoration: none;
+}
+
 a {
   color: #6695c8;
 }
@@ -149,17 +156,17 @@ a:hover {
 }
 
 .delete-post {
-  right: 0;
-  top: 0;
+  right: -3px;
+  top: -15px;
   position: absolute;
   font-size: 20px;
 }
 
-.post-id {
+.reply-to-post {
   position: absolute;
-  bottom: 0;
+  bottom: -30px;
   right: 0;
-  font-size: 10px;
+  font-size: 13px;
 }
 
 .replies {
