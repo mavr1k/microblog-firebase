@@ -233,6 +233,7 @@ var App = function (_Component) {
       user = null;
     }
     _this.state = {
+      users: null,
       user: user,
       db: db
     };
@@ -247,6 +248,11 @@ var App = function (_Component) {
   }
 
   _createClass(App, [{
+    key: 'onGetUsers',
+    value: function onGetUsers(users) {
+      this.setState({ users: users });
+    }
+  }, {
     key: 'auth',
     value: function auth(user) {
       var _this2 = this;
@@ -280,7 +286,9 @@ var App = function (_Component) {
           'div',
           { className: 'container' },
           _react2.default.createElement(_reactRouterDom.Route, { exact: true, path: '/', render: function render() {
-              return _react2.default.createElement(_Blogs2.default, { db: _this3.state.db, onLogout: function onLogout() {
+              return _react2.default.createElement(_Blogs2.default, { users: _this3.state.users, onGetUsers: function onGetUsers(u) {
+                  return _this3.onGetUsers(u);
+                }, db: _this3.state.db, onLogout: function onLogout() {
                   return _this3.logout();
                 }, user: _this3.state.user });
             } }),
@@ -294,6 +302,7 @@ var App = function (_Component) {
             path: '/user/:email',
             render: function render(data) {
               return _react2.default.createElement(_Profile2.default, {
+                users: _this3.state.users,
                 data: data,
                 currentUser: _this3.state.user,
                 goBack: data.history.goBack,
@@ -368,7 +377,6 @@ var Blogs = function (_Component) {
 
     _this.state = {
       blogs: null,
-      users: null,
       message: '',
       emoji: _randomEmoji2.default.random({ count: 1 })[0]
     };
@@ -408,13 +416,13 @@ var Blogs = function (_Component) {
       var _this3 = this;
 
       _FirestoreService2.default.getUsers(this.props.db).then(function (users) {
-        return _this3.setState({ users: users });
+        _this3.props.onGetUsers(users);
       });
     }
   }, {
     key: 'findAuthor',
     value: function findAuthor(email) {
-      return this.state.users.find(function (user) {
+      return this.props.users.find(function (user) {
         return user.email === email;
       });
     }
@@ -506,7 +514,7 @@ var Blogs = function (_Component) {
           },
           currentUser: this.props.user,
           db: this.props.db,
-          users: this.state.users,
+          users: this.props.users,
           blogs: this.state.blogs
         })
       );
@@ -778,7 +786,7 @@ var Post = function (_Component) {
             'button',
             { onClick: function onClick() {
                 return _this3.setState({ areRepliesShown: !_this3.state.areRepliesShown });
-              }, className: 'btn btn-link' },
+              }, className: 'btn btn-link show-replies-btn' },
             !this.state.areRepliesShown ? this.state.replies.length + ' ' + (this.state.replies.length > 1 ? 'replies' : 'reply') : 'Hide'
           )
         ),
@@ -791,7 +799,6 @@ var Post = function (_Component) {
               onReply: function onReply() {
                 return _this3.props.onReply(el.id);
               },
-              users: _this3.props.users,
               currentUser: _this3.props.currentUser,
               author: _this3.props.users.find(function (user) {
                 return user.email === el.author;
@@ -953,7 +960,7 @@ var Profile = function (_Component) {
           _react2.default.createElement(_Feed2.default, {
             db: this.props.db,
             currentUser: this.props.currentUser,
-            users: [this.state.user],
+            users: this.props.users,
             blogs: this.state.blogs
           })
         )

@@ -1,0 +1,56 @@
+@media (max-width : 768px),
+(max-device-width: 768px) {
+  .login-btn {
+    width: 100%;
+  }
+  .logout {
+    position: absolute;
+    top: 15px;
+    right: 15px;
+  }
+  .post-id {
+    bottom: .6rem;
+  }
+  .show-replies-btn{
+    position: absolute;
+    bottom: -14px;
+    left: -12px;
+  }
+  .post-input .input-group-prepend {
+    display: none;
+  }
+  .post-input .input-group>.custom-select:not(:first-child),
+  .input-group>.form-control:not(:first-child) {
+    border-top-left-radius: .25rem;
+    border-bottom-left-radius: .25rem;
+  }
+  .post {
+    padding: 10px;
+    margin: 5px 0;
+  }
+  .author {
+    margin-bottom: 10px;
+  }
+  .delete-post {
+    top: -140px;
+  }
+  .replies {
+    margin: 0;
+  }
+  .replies .post {
+    margin: 10px 0;
+  }
+  .profile {
+    flex-direction: column;
+    align-items: center;
+  }
+  .profile .name,
+  .profile .email  {
+    margin: 0;
+  }
+  .profile .photo {
+    width: 150px;
+    height: 150px;
+    border-radius: 75px;
+  }
+}

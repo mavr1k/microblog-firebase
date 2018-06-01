@@ -58,7 +58,7 @@ class Post extends Component {
               </button> : null}
           <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link post-id">{this.props.post.id}</button>
           {this.props.isReply || !(this.state.replies && this.state.replies.length) ? null :
-          <button onClick={() => this.setState({ areRepliesShown: !this.state.areRepliesShown })} className="btn btn-link">{!this.state.areRepliesShown ?
+          <button onClick={() => this.setState({ areRepliesShown: !this.state.areRepliesShown })} className="btn btn-link show-replies-btn">{!this.state.areRepliesShown ?
               `${this.state.replies.length} ${this.state.replies.length > 1 ? 'replies' : 'reply'}` : 'Hide'}
           </button>}
         </div>
@@ -68,7 +68,6 @@ class Post extends Component {
               <Post
                 isReply
                 onReply={() => this.props.onReply(el.id)}
-                users={this.props.users}
                 currentUser={this.props.currentUser}
                 author={this.props.users.find(user => user.email === el.author)}
                 post={el}

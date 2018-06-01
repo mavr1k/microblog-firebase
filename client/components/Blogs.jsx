@@ -9,7 +9,6 @@ class Blogs extends Component {
     super(props);
     this.state = {
       blogs: null,
-      users: null,
       message: '',
       emoji: randomEmoji.random({ count: 1 })[0]
     };
@@ -38,11 +37,13 @@ class Blogs extends Component {
   }
 
   getAll() {
-    FirestoreService.getUsers(this.props.db).then(users => this.setState({ users }));
+    FirestoreService.getUsers(this.props.db).then((users) => {
+      this.props.onGetUsers(users);
+    });
   }
 
   findAuthor(email) {
-    return this.state.users.find(user => user.email === email);
+    return this.props.users.find(user => user.email === email);
   }
 
   handleEnter(e) {
@@ -94,7 +95,7 @@ class Blogs extends Component {
           onReply={p => this.onReply(p)}
           currentUser={this.props.user}
           db={this.props.db}
-          users={this.state.users}
+          users={this.props.users}
           blogs={this.state.blogs}
         />
       </div>);

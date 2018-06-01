@@ -46,7 +46,7 @@ class Profile extends Component {
             <Feed
               db={this.props.db}
               currentUser={this.props.currentUser}
-              users={[this.state.user]}
+              users={this.props.users}
               blogs={this.state.blogs}
             />
           </div>
