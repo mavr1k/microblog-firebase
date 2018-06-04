@@ -213,7 +213,8 @@ a:hover {
   transition: opacity 0.5s linear;
 }
 
-.like:hover+.users-likes {
+.like:hover+.users-likes,
+.users-likes:hover {
   visibility: visible;
   opacity: 1;
 }

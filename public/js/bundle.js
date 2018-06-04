@@ -782,12 +782,20 @@ var Post = function (_Component) {
             _react2.default.createElement(
               'div',
               { className: 'col-md-4' },
-              _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + user.photoURL + '\')' } })
+              _react2.default.createElement(
+                _reactRouterDom.Link,
+                { href: '/', to: '/user/' + encodeURIComponent(user.email) },
+                _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + user.photoURL + '\')' } })
+              )
             ),
             _react2.default.createElement(
               'div',
               { className: 'col-md-8' },
-              user.displayName
+              _react2.default.createElement(
+                _reactRouterDom.Link,
+                { href: '/', to: '/user/' + encodeURIComponent(user.email) },
+                user.displayName
+              )
             )
           );
         });

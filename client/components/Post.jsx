@@ -47,9 +47,13 @@ class Post extends Component {
         return (
           <li className="row" key={user.email}>
             <div className="col-md-4">
-              <div className="photo" style={{ backgroundImage: `url('${user.photoURL}')` }} />
+              <Link href="/" to={`/user/${encodeURIComponent(user.email)}`}>
+                <div className="photo" style={{ backgroundImage: `url('${user.photoURL}')` }} />
+              </Link>
             </div>
-            <div className="col-md-8">{user.displayName}</div>
+            <div className="col-md-8">
+              <Link href="/" to={`/user/${encodeURIComponent(user.email)}`}>{user.displayName}</Link>
+            </div>
           </li>
         );
       });
