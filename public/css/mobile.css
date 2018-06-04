@@ -53,4 +53,7 @@
     height: 150px;
     border-radius: 75px;
   }
+  .reply-to-post {
+    bottom: 0;
+  }
 }

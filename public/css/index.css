@@ -25,6 +25,25 @@ h6 {
   text-align: center;
 }
 
+.input-group-text {
+  background-color: #fff;
+  color: #0090ff;
+}
+
+.form-control {
+  background-color: #e9ecf1;
+}
+
+.form-control::placeholder {
+  color: #8cc4ff;
+}
+
+.input-group>.input-group-append>.btn {
+  text-transform: uppercase;
+  background: #3066be;
+  color: #fff;
+}
+
 .btn-link,
 .btn-link:hover,
 .btn-link:active,
@@ -73,6 +92,10 @@ a:hover {
   margin-bottom: 25px;
   padding-top: 10px;
   padding-bottom: 10px;
+}
+
+.post-input * {
+  border: none;
 }
 
 .post {
@@ -164,13 +187,17 @@ a:hover {
 
 .reply-to-post {
   position: absolute;
-  bottom: -30px;
+  bottom: -15px;
   right: 0;
-  font-size: 13px;
+  font-size: 20px;
 }
 
 .replies {
   margin: 10px 30px;
+}
+
+.replies .post {
+  border: 1px solid #f3f3f3;
 }
 
 .users-likes {

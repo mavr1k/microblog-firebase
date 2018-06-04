@@ -834,13 +834,13 @@ var Post = function (_Component) {
           { className: 'text col-md-9' },
           _react2.default.createElement(
             'p',
-            { className: 'body' },
-            this.props.post.body
+            { className: 'date' },
+            this.props.post.timeStamp.toDate().toLocaleString()
           ),
           _react2.default.createElement(
             'p',
-            { className: 'date' },
-            this.props.post.timeStamp.toDate().toLocaleString()
+            { className: 'body' },
+            this.props.post.body
           ),
           this.props.post.author === this.props.currentUser.email || this.props.currentUser.isAdmin ? _react2.default.createElement(
             'button',
@@ -854,7 +854,7 @@ var Post = function (_Component) {
             { onClick: function onClick() {
                 return _this5.props.onReply(_this5.props.post.id);
               }, className: 'btn btn-link reply-to-post' },
-            'Reply to this'
+            _react2.default.createElement('i', { className: 'fas fa-reply' })
           ),
           _react2.default.createElement(
             'div',
@@ -882,10 +882,10 @@ var Post = function (_Component) {
             )
           )
         ),
-        _react2.default.createElement(
+        !(this.state.areRepliesShown && this.state.replies) ? null : _react2.default.createElement(
           'div',
           { className: 'replies container' },
-          !(this.state.areRepliesShown && this.state.replies) ? null : this.state.replies.map(function (el) {
+          this.state.replies.map(function (el) {
             return _react2.default.createElement(Post, {
               isReply: true,
               users: _this5.props.users,

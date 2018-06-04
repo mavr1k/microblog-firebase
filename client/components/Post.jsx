@@ -83,14 +83,14 @@ class Post extends Component {
             )}
         </div>
         <div className="text col-md-9">
-          <p className="body">{this.props.post.body}</p>
           <p className="date">{this.props.post.timeStamp.toDate().toLocaleString()}</p>
+          <p className="body">{this.props.post.body}</p>
           {this.props.post.author === this.props.currentUser.email
             || this.props.currentUser.isAdmin ?
               <button onClick={() => this.deletePost(this.props.post.id)} className="btn btn-link delete-post">
                 <i className="fas fa-eraser" />
               </button> : null}
-          <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post">Reply to this</button>
+          <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post"><i className="fas fa-reply" /></button>
           <div className="buttons">
             <button onClick={() => this.like()} className="btn btn-link like">{this.calculateLikes()} {this.getLikeIcon()}</button>
             {this.calculateLikes() ? (
@@ -104,9 +104,9 @@ class Post extends Component {
             </button>}
           </div>
         </div>
-        <div className="replies container" >
-          {!(this.state.areRepliesShown && this.state.replies) ? null :
-            this.state.replies.map(el => (
+        {!(this.state.areRepliesShown && this.state.replies) ? null : (
+          <div className="replies container" >
+            {this.state.replies.map(el => (
               <Post
                 isReply
                 users={this.props.users}
@@ -118,9 +118,10 @@ class Post extends Component {
                 key={el.id}
               />
             ))}
-        </div>
-      </div>
-    );
+          </div>
+          )
+        }
+      </div>);
   }
 }
 
