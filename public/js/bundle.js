@@ -775,11 +775,15 @@ var Post = function (_Component) {
           });
           return _react2.default.createElement(
             'li',
-            { key: user.email },
-            _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + user.photoURL + '\')' } }),
+            { className: 'row', key: user.email },
             _react2.default.createElement(
-              'span',
-              null,
+              'div',
+              { className: 'col-md-4' },
+              _react2.default.createElement('div', { className: 'photo', style: { backgroundImage: 'url(\'' + user.photoURL + '\')' } })
+            ),
+            _react2.default.createElement(
+              'div',
+              { className: 'col-md-8' },
               user.displayName
             )
           );
@@ -854,7 +858,7 @@ var Post = function (_Component) {
           ),
           _react2.default.createElement(
             'div',
-            null,
+            { className: 'buttons' },
             _react2.default.createElement(
               'button',
               { onClick: function onClick() {

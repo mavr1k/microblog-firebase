@@ -100,10 +100,12 @@ a:hover {
 
 .post .body {
   font-size: 16px;
+  z-index: -1;
 }
 
 .post .date {
   font-size: 12px;
+  z-index: -1;
 }
 
 .photo {
@@ -171,4 +173,43 @@ a:hover {
 
 .replies {
   margin: 10px 30px;
+}
+
+.users-likes {
+  position: absolute;
+  opacity: 0;
+  transition: opacity .5s ease;
+  background: white;
+  border: 1px solid #dbdbdb;
+  padding: 5px;
+  z-index: 1;
+}
+
+.users-likes .photo {
+  width: 50px;
+  height: 50px;
+  border-radius: 25px;
+}
+
+.users-likes>li {
+  padding: 5px;
+  align-items: center;
+  background: white;
+  border: 1px solid #dbdbdb;
+  margin: 0 0 5px 0;
+  width: 300px;
+}
+
+.users-likes>li:last-of-type{
+  margin: 0;
+}
+
+.like:hover+.users-likes {
+  opacity: 1;
+}
+
+.like,
+.show-replies-btn
+ {
+  z-index: -1;
 }

@@ -45,9 +45,11 @@ class Post extends Component {
       return this.props.post.likes.map((like) => {
         const user = this.props.users.find(user => user.email === like);
         return (
-          <li key={user.email}>
-            <div className="photo" style={{ backgroundImage: `url('${user.photoURL}')` }} />
-            <span>{user.displayName}</span>
+          <li className="row" key={user.email}>
+            <div className="col-md-4">
+              <div className="photo" style={{ backgroundImage: `url('${user.photoURL}')` }} />
+            </div>
+            <div className="col-md-8">{user.displayName}</div>
           </li>
         );
       });
@@ -89,7 +91,7 @@ class Post extends Component {
                 <i className="fas fa-eraser" />
               </button> : null}
           <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post">Reply to this</button>
-          <div>
+          <div className="buttons">
             <button onClick={() => this.like()} className="btn btn-link like">{this.calculateLikes()} {this.getLikeIcon()}</button>
             {this.calculateLikes() ? (
               <ul className="users-likes">

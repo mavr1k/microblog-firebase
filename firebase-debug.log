@@ -47,3 +47,52 @@
 [info] +  hosting: Local server: http://localhost:5000
 
 [debug] [2018-06-01T15:52:31.239Z] Parsing function triggers
+[debug] [2018-06-04T08:18:52.858Z] ----------------------------------------------------------------------
+[debug] [2018-06-04T08:18:52.861Z] Command:       C:\Program Files\nodejs\node.exe C:\Users\dmitry.mavrosaus\Desktop\microblog-firebase\node_modules\firebase-tools\bin\firebase serve
+[debug] [2018-06-04T08:18:52.861Z] CLI Version:   3.18.5
+[debug] [2018-06-04T08:18:52.861Z] Platform:      win32
+[debug] [2018-06-04T08:18:52.861Z] Node Version:  v8.9.1
+[debug] [2018-06-04T08:18:52.862Z] Time:          Mon Jun 04 2018 11:18:52 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:18:52.862Z] ----------------------------------------------------------------------
+[debug] 
+[debug] [2018-06-04T08:18:52.908Z] > command requires scopes: ["email","openid","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","https://www.googleapis.com/auth/cloud-platform"]
+[debug] [2018-06-04T08:18:52.909Z] > authorizing via signed-in user
+[debug] [2018-06-04T08:18:52.912Z] > refreshing access token with scopes: ["email","https://www.googleapis.com/auth/cloud-platform","https://www.googleapis.com/auth/cloudplatformprojects.readonly","https://www.googleapis.com/auth/firebase","openid"]
+[debug] [2018-06-04T08:18:52.912Z] >>> HTTP REQUEST POST https://www.googleapis.com/oauth2/v3/token  
+ { refresh_token: '1/M-JEdsW8ZAO-VUO8jLt6wJPV2dJVilo8PWiVWDnXV5eMED1sJ-c0nrTQ82Ziqc13',
+  client_id: '563584335869-fgrhgmd47bqnekij5i8b5pr03ho849e6.apps.googleusercontent.com',
+  client_secret: 'j9iVZfS8kkCEFUPaAeJV0sAi',
+  grant_type: 'refresh_token',
+  scope: 'email https://www.googleapis.com/auth/cloud-platform https://www.googleapis.com/auth/cloudplatformprojects.readonly https://www.googleapis.com/auth/firebase openid' } 
+ Mon Jun 04 2018 11:18:52 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:18:53.193Z] <<< HTTP RESPONSE 200
+[debug] [2018-06-04T08:18:53.204Z] >>> HTTP REQUEST GET https://admin.firebase.com/v1/projects/microblog-hello-world  
+  
+ Mon Jun 04 2018 11:18:53 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:18:54.041Z] <<< HTTP RESPONSE 200
+[debug] [2018-06-04T08:18:54.041Z] >>> HTTP REQUEST GET https://admin.firebase.com/v1/database/microblog-hello-world/tokens  
+  
+ Mon Jun 04 2018 11:18:54 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:18:54.746Z] <<< HTTP RESPONSE 200
+[debug] [2018-06-04T08:18:54.747Z] >>> HTTP REQUEST GET https://cloudresourcemanager.googleapis.com/v1/projects/microblog-hello-world  
+  
+ Mon Jun 04 2018 11:18:54 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:18:55.711Z] <<< HTTP RESPONSE 200
+[info] 
+[info] === Serving from 'C:\Users\dmitry.mavrosaus\Desktop\microblog-firebase'...
+[info] 
+[info] i  functions: Preparing to emulate functions.
+[debug] [2018-06-04T08:19:03.845Z] Fetching environment
+[debug] [2018-06-04T08:19:03.851Z] >>> HTTP REQUEST GET https://mobilesdk-pa.googleapis.com/v1/projects/781422399017:getServerAppConfig  
+  
+ Mon Jun 04 2018 11:19:03 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:19:03.851Z] >>> HTTP REQUEST GET https://mobilesdk-pa.googleapis.com/v1/projects/781422399017/clients/_:getWebAppConfig  
+  
+ Mon Jun 04 2018 11:19:03 GMT+0300 (GTB Daylight Time)
+[debug] [2018-06-04T08:19:04.427Z] <<< HTTP RESPONSE 200
+[debug] [2018-06-04T08:19:04.513Z] <<< HTTP RESPONSE 200
+[debug] [2018-06-04T08:19:04.514Z] Starting @google-cloud/functions-emulator
+[info] i  hosting: Serving hosting files from: public
+[info] +  hosting: Local server: http://localhost:5000
+
+[debug] [2018-06-04T08:19:07.055Z] Parsing function triggers
