@@ -1,5 +1,10 @@
-@media (max-width : 768px),
+@media (max-width: 768px),
 (max-device-width: 768px) {
+  .spinner {
+    width: 100vw;
+    left: 50vw;
+    margin-left: -50vw;
+  }
   .login-btn {
     width: 100%;
   }
@@ -11,7 +16,7 @@
   .post-id {
     bottom: .6rem;
   }
-  .show-replies-btn{
+  .show-replies-btn {
     position: absolute;
     bottom: -14px;
     left: -12px;
@@ -45,7 +50,7 @@
     align-items: center;
   }
   .profile .name,
-  .profile .email  {
+  .profile .email {
     margin: 0;
   }
   .profile .photo {
@@ -55,5 +60,8 @@
   }
   .reply-to-post {
     bottom: 0;
+  }
+  .users-likes>li{
+    width: unset;
   }
 }
