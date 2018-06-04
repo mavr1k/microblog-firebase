@@ -9,6 +9,7 @@ body {
   font-family: 'Roboto', sans-serif;
   color: #747474;
   min-height: 100%;
+  background: #F3F3F3;
 }
 
 #root {
@@ -75,10 +76,9 @@ a:hover {
 }
 
 .post {
-  border: 1px solid #dbdbdb;
+  background: #fff;
   padding: 10px 0;
   margin-bottom: 10px;
-  border-radius: .25rem;
 }
 
 .post .author,
@@ -100,12 +100,10 @@ a:hover {
 
 .post .body {
   font-size: 16px;
-  z-index: -1;
 }
 
 .post .date {
   font-size: 12px;
-  z-index: -1;
 }
 
 .photo {
@@ -177,12 +175,18 @@ a:hover {
 
 .users-likes {
   position: absolute;
-  opacity: 0;
-  transition: opacity .5s ease;
   background: white;
   border: 1px solid #dbdbdb;
   padding: 5px;
   z-index: 1;
+  visibility: hidden;
+  opacity: 0;
+  transition: visibility 0s, opacity 0.5s linear;
+}
+
+.like:hover+.users-likes {
+  visibility: visible;
+  opacity: 1;
 }
 
 .users-likes .photo {
@@ -195,21 +199,15 @@ a:hover {
   padding: 5px;
   align-items: center;
   background: white;
-  border: 1px solid #dbdbdb;
   margin: 0 0 5px 0;
   width: 300px;
 }
 
-.users-likes>li:last-of-type{
+.users-likes>li:last-of-type {
   margin: 0;
 }
 
-.like:hover+.users-likes {
-  opacity: 1;
-}
-
 .like,
-.show-replies-btn
- {
+.show-replies-btn {
   z-index: -1;
 }
