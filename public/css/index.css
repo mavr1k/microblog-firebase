@@ -210,7 +210,7 @@ a:hover {
   z-index: 1;
   visibility: hidden;
   opacity: 0;
-  transition: display 0s, opacity 0.5s linear;
+  transition: opacity 0.5s linear;
 }
 
 .like:hover+.users-likes {
