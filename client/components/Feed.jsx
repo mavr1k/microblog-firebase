@@ -12,7 +12,7 @@ const Feed = ({
   if (currentUser === null) {
     return <Redirect to="/login" />;
   } else if (blogs === null || users === null) {
-    return <img className="spinner" src="img/loading.gif" />;
+    return <img className="spinner" src="/img/loading.gif" />;
   } else if (blogs.length > 0) {
     return blogs.map(blog => (
       <Post

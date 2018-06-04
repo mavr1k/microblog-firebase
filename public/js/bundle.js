@@ -321,6 +321,9 @@ var App = function (_Component) {
             path: '/user/:email',
             render: function render(data) {
               return _react2.default.createElement(_Profile2.default, {
+                onGetUsers: function onGetUsers(u) {
+                  return _this3.onGetUsers(u);
+                },
                 users: _this3.state.users,
                 data: data,
                 currentUser: _this3.state.user,
@@ -583,7 +586,7 @@ var Feed = function Feed(_ref) {
   if (currentUser === null) {
     return _react2.default.createElement(_reactRouterDom.Redirect, { to: '/login' });
   } else if (blogs === null || users === null) {
-    return _react2.default.createElement('img', { className: 'spinner', src: 'img/loading.gif' });
+    return _react2.default.createElement('img', { className: 'spinner', src: '/img/loading.gif' });
   } else if (blogs.length > 0) {
     return blogs.map(function (blog) {
       return _react2.default.createElement(_Post2.default, {
@@ -770,8 +773,8 @@ var Post = function (_Component) {
 
       if (this.calculateLikes()) {
         return this.props.post.likes.map(function (like) {
-          var user = _this4.props.users.find(function (user) {
-            return user.email === like;
+          var user = _this4.props.users.find(function (propsUser) {
+            return propsUser.email === like;
           });
           return _react2.default.createElement(
             'li',
@@ -977,6 +980,11 @@ var Profile = function (_Component) {
       var _this2 = this;
 
       var email = decodeURIComponent(this.props.email);
+      if (this.props.users === null) {
+        _FirestoreService2.default.getUsers(this.props.db).then(function (u) {
+          return _this2.props.onGetUsers(u);
+        });
+      }
       _FirestoreService2.default.findUserByEmail(this.props.db, email).then(function (user) {
         _this2.unsubscribe = _FirestoreService2.default.onBlogsChangeByEmail(_this2.props.db, email).onSnapshot(function (snap) {
           var blogs = snap.docs.map(function (el) {
@@ -1035,10 +1043,11 @@ var Profile = function (_Component) {
             _react2.default.createElement(
               'p',
               { className: 'posts-count' },
-              'Posts count: ',
+              _react2.default.createElement('i', { className: 'fas fa-comment' }),
               _react2.default.createElement(
                 'b',
                 null,
+                ' ',
                 blogs.length
               )
             )

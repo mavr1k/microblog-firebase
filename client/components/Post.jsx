@@ -43,7 +43,7 @@ class Post extends Component {
   getUsersLikes() {
     if (this.calculateLikes()) {
       return this.props.post.likes.map((like) => {
-        const user = this.props.users.find(user => user.email === like);
+        const user = this.props.users.find(propsUser => propsUser.email === like);
         return (
           <li className="row" key={user.email}>
             <div className="col-md-4">

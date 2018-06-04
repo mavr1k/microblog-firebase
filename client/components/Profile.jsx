@@ -14,6 +14,9 @@ class Profile extends Component {
   }
   componentDidMount() {
     const email = decodeURIComponent(this.props.email);
+    if (this.props.users === null) {
+      FirestoreService.getUsers(this.props.db).then(u => this.props.onGetUsers(u));
+    }
     FirestoreService.findUserByEmail(this.props.db, email)
       .then((user) => {
         this.unsubscribe = FirestoreService.onBlogsChangeByEmail(this.props.db, email)
@@ -42,7 +45,7 @@ class Profile extends Component {
               <p className="email">
                 <a href={`mailto:${user.email}`}>{user.email}</a>
               </p>
-              <p className="posts-count">Posts count: <b>{blogs.length}</b></p>
+              <p className="posts-count"><i className="fas fa-comment" /><b> {blogs.length}</b></p>
             </div>
             <h2>{emoji.character}Posts{emoji.character}</h2>
             <Feed

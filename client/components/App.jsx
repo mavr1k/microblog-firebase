@@ -66,6 +66,7 @@ class App extends Component {
             path="/user/:email"
             render={data => (
               <Profile
+                onGetUsers={u => this.onGetUsers(u)}
                 users={this.state.users}
                 data={data}
                 currentUser={this.state.user}

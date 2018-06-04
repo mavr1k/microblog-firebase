@@ -163,6 +163,7 @@ a:hover {
 .profile .posts-count {
   align-self: flex-end;
   margin-left: auto;
+  color: #007bff;
 }
 
 .no-posts {
@@ -208,7 +209,7 @@ a:hover {
   z-index: 1;
   visibility: hidden;
   opacity: 0;
-  transition: visibility 0s, opacity 0.5s linear;
+  transition: display 0s, opacity 0.5s linear;
 }
 
 .like:hover+.users-likes {
