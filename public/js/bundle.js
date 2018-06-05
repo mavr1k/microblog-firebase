@@ -705,8 +705,49 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
 function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
-/* global window */
+/* global window document */
 
+
+var scrollTo = function scrollTo(element) {
+  element.scrollIntoView({ behavior: 'smooth' });
+  element.classList.toggle('highlight');
+  setTimeout(function () {
+    return element.classList.toggle('highlight');
+  }, 2000);
+};
+
+var processBody = function processBody(text) {
+  var match = text.match(/@(.{20})/);
+  var element = null;
+  if (match) {
+    element = document.getElementById(match[1]);
+  }
+  if (element) {
+    var array = text.split(match[0]);
+    return array.map(function (item, i) {
+      if (i === 0) {
+        return _react2.default.createElement(
+          'span',
+          { key: item },
+          _react2.default.createElement(
+            'span',
+            { className: 'reference-to-post', onClick: function onClick() {
+                return scrollTo(element);
+              } },
+            match[0]
+          ),
+          item
+        );
+      }
+      return _react2.default.createElement(
+        'span',
+        { key: item },
+        item
+      );
+    });
+  }
+  return text;
+};
 
 var Post = function (_Component) {
   _inherits(Post, _Component);
@@ -824,7 +865,7 @@ var Post = function (_Component) {
 
       return _react2.default.createElement(
         'div',
-        { className: 'post row' },
+        { className: 'post row', id: this.props.post.id },
         _react2.default.createElement(
           'div',
           { className: 'author col-md-3' },
@@ -851,7 +892,7 @@ var Post = function (_Component) {
           _react2.default.createElement(
             'p',
             { className: 'body' },
-            this.props.post.body
+            processBody(this.props.post.body)
           ),
           this.props.post.author === this.props.currentUser.email || this.props.currentUser.isAdmin ? _react2.default.createElement(
             'button',
