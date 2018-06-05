@@ -1,3 +1,4 @@
+/* global document */
 import React, { Component } from 'react';
 import randomEmoji from 'random-emoji';
 import { Redirect } from 'react-router-dom';
@@ -33,7 +34,10 @@ class Blogs extends Component {
   }
 
   onReply(postId) {
-    this.setState({ message: `@${postId}` });
+    const input = document.getElementById('message-input');    
+    input.scrollIntoView({ behavior: 'smooth', block: 'end' });
+    this.setState({ message: `@${postId} ` });
+    setTimeout(() => input.focus(), 500);
   }
 
   getAll() {
@@ -86,7 +90,7 @@ class Blogs extends Component {
           <div className="input-group-prepend">
             <span className="input-group-text" id="inputGroup-sizing-sm">What&apos;s new?</span>
           </div>
-          <input placeholder="Your text here..." value={this.state.message} onChange={e => this.setState({ message: e.target.value })} onKeyPress={e => this.handleEnter(e)} className={`form-control ${!this.isMessageValid() && this.state.message.length !== 0 ? 'is-invalid' : ''}`} type="text" />
+          <input id="message-input" placeholder="Your text here..." value={this.state.message} onChange={e => this.setState({ message: e.target.value })} onKeyPress={e => this.handleEnter(e)} className={`form-control ${!this.isMessageValid() && this.state.message.length !== 0 ? 'is-invalid' : ''}`} type="text" />
           <div className="input-group-append">
             <button disabled={!this.isMessageValid()} onClick={() => this.post()} className="btn btn-outline-secondary" type="button">Post</button>
           </div>

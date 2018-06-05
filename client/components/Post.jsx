@@ -123,7 +123,7 @@ class Post extends Component {
               <button onClick={() => this.deletePost(this.props.post.id)} className="btn btn-link delete-post">
                 <i className="fas fa-eraser" />
               </button> : null}
-          <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post"><i className="fas fa-reply" /></button>
+          {window.location.pathname.includes('user') ? null : <button onClick={() => this.props.onReply(this.props.post.id)} className="btn btn-link reply-to-post"><i className="fas fa-reply" /></button>}
           <div className="buttons">
             <button onClick={() => this.like()} className="btn btn-link like">{this.calculateLikes()} {this.getLikeIcon()}</button>
             {this.calculateLikes() ? (

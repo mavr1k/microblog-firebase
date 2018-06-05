@@ -387,7 +387,8 @@ function _classCallCheck(instance, Constructor) { if (!(instance instanceof Cons
 
 function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
 
-function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; } /* global document */
+
 
 var Blogs = function (_Component) {
   _inherits(Blogs, _Component);
@@ -430,7 +431,12 @@ var Blogs = function (_Component) {
   }, {
     key: 'onReply',
     value: function onReply(postId) {
-      this.setState({ message: '@' + postId });
+      var input = document.getElementById('message-input');
+      input.scrollIntoView({ behavior: 'smooth', block: 'end' });
+      this.setState({ message: '@' + postId + ' ' });
+      setTimeout(function () {
+        return input.focus();
+      }, 500);
     }
   }, {
     key: 'getAll',
@@ -513,7 +519,7 @@ var Blogs = function (_Component) {
               'What\'s new?'
             )
           ),
-          _react2.default.createElement('input', { placeholder: 'Your text here...', value: this.state.message, onChange: function onChange(e) {
+          _react2.default.createElement('input', { id: 'message-input', placeholder: 'Your text here...', value: this.state.message, onChange: function onChange(e) {
               return _this4.setState({ message: e.target.value });
             }, onKeyPress: function onKeyPress(e) {
               return _this4.handleEnter(e);
@@ -901,7 +907,7 @@ var Post = function (_Component) {
               }, className: 'btn btn-link delete-post' },
             _react2.default.createElement('i', { className: 'fas fa-eraser' })
           ) : null,
-          _react2.default.createElement(
+          window.location.pathname.includes('user') ? null : _react2.default.createElement(
             'button',
             { onClick: function onClick() {
                 return _this5.props.onReply(_this5.props.post.id);
