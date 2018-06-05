@@ -5,6 +5,7 @@ import { BrowserRouter as Router, Route } from 'react-router-dom';
 import Login from './Login';
 import Blogs from './Blogs';
 import Profile from './Profile';
+import Users from './Users';
 import FirestoreService from '../FirestoreService';
 
 class App extends Component {
@@ -34,7 +35,11 @@ class App extends Component {
   }
 
   onGetUsers(users) {
-    this.setState({ users });
+    if (users) {
+      this.setState({ users });
+    } else {
+      FirestoreService.getUsers(this.state.db).then(u => this.setState({ users: u }));
+    }
   }
 
   auth(user) {
@@ -76,7 +81,7 @@ class App extends Component {
               />
             )}
           />
-          {/* <Route exact path="/message/:id" render={data => <Message />} */}
+          { this.state.user && this.state.user.isAdmin ? <Route exact path="/users" render={() => <Users onGetUsers={() => this.onGetUsers()} users={this.state.users} />} /> : null}
         </div>
       </Router>
     );

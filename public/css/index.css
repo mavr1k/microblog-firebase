@@ -99,7 +99,8 @@ a:hover {
   border: none;
 }
 
-.post {
+.post,
+.user {
   background: #fff;
   padding: 10px 0;
   margin-bottom: 10px;
