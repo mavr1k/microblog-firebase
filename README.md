@@ -1,5 +1,4 @@
 # Twitter-like sample on Firebase
-## It's in progress now!
 
 Install dependencies first
 ```
